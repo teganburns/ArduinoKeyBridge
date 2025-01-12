@@ -1,10 +1,14 @@
 #ifndef CUSTOM_KEYBOARD_PARSER_H
 #define CUSTOM_KEYBOARD_PARSER_H
 
+// Define debugging flag
+#ifndef CUSTOM_KEYBOARD_PARSER_DEBUG
+#define CUSTOM_KEYBOARD_PARSER_DEBUG true
+#endif
+
 #include <hidboot.h>
 #include "MinimalKeyboard.h"
 
-// Uncommented
 class CustomKeyboardParser : public KeyboardReportParser {
 
 public:

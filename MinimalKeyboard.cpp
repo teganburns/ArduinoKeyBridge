@@ -82,8 +82,6 @@ const uint8_t MinimalKeyboard::HID_REPORT_DESCRIPTOR[] PROGMEM = {
 };
 
 
-//Uncommented
-// Constructor
 MinimalKeyboard::MinimalKeyboard() {
     static HIDSubDescriptor node(HID_REPORT_DESCRIPTOR, sizeof(HID_REPORT_DESCRIPTOR));
     HID().AppendDescriptor(&node);
@@ -94,8 +92,6 @@ void MinimalKeyboard::begin() {}
 void MinimalKeyboard::sendReport(KeyReport* report) {
     HID().SendReport(2, report, sizeof(KeyReport));
 }
-
-//Uncommented
 
 void MinimalKeyboard::sendMediaReport(uint16_t usage) {
     // Create the consumer control HID report

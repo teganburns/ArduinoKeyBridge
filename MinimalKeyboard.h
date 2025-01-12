@@ -3,7 +3,6 @@
 
 #include <HID.h>
 
-//Uncommented
 typedef struct {
     uint8_t modifiers;
     uint8_t reserved;

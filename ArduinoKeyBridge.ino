@@ -1,5 +1,5 @@
 #include "WiFiConnection.h"
-#include "JsonReceiver.h"
+#include "JsonHandler.h"
 
 #include "CustomKeyboardParser.h"
 
@@ -17,7 +17,6 @@ CustomKeyboardParser Parser(MyKB);
 
 // Objects
 WiFiConnection wifiConnection(ssid, password);
-JsonReceiver jsonReceiver;
 
 
 void setup() {
@@ -28,6 +27,7 @@ void setup() {
     // Connect to Wi-Fi
     wifiConnection.connect();
     wifiConnection.startServer();
+
 
     // Setup USB Passthrough
     if (Usb.Init() == -1) {
@@ -45,10 +45,6 @@ void setup() {
 void loop() {
 
     Usb.Task();
-
-    // Handle incoming Wi-Fi clients and pass messages to JsonReceiver
-    wifiConnection.handleClient([](const String& message) {
-        jsonReceiver.processMessage(message);
-    });
+    wifiConnection.handleClient();
 
 }

@@ -1,14 +1,14 @@
-#ifndef JSON_RECEIVER_H
-#define JSON_RECEIVER_H
+#ifndef JSON_HANDLER_H
+#define JSON_HANDLER_H
 
 #include <ArduinoJson.h>
 #include <queue>
 #include <string>
 
-class JsonReceiver {
+class JsonHandler {
 public:
-    JsonReceiver(size_t bufferLimit = 5, size_t maxSize = 2048);
-    void processMessage(const String& message);
+    JsonHandler(size_t bufferLimit = 5, size_t maxSize = 2048);
+    bool processMessage(const String& message);
     String getMessagesAsString() const;
 
 private:
