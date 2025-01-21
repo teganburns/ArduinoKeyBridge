@@ -1,14 +1,23 @@
 #include "JsonHandler.h"
 #include <Arduino.h>
 
+
+// Singleton accessor
+JsonHandler& JsonHandler::getInstance() {
+  static JsonHandler instance;  // Guaranteed single instance
+  return instance;
+}
+
+/*
 JsonHandler::JsonHandler(size_t bufferLimit, size_t maxSize)
   : bufferLimit(bufferLimit), maxSize(maxSize) {}
+*/
 
 bool JsonHandler::processMessage(const String& message) {
 
   SerialUSB.print("Message: ");
   SerialUSB.println(message);
-  StaticJsonDocument<2048> jsonDoc;
+  JsonDocument jsonDoc;
   DeserializationError error = deserializeJson(jsonDoc, message);
 
   if (error) {
@@ -28,7 +37,7 @@ bool JsonHandler::processMessage(const String& message) {
     return false;
   }
 
-  //addMessage(message); // TODO: Need to fix, requests hang here
+  //addMessage(message); // TODO: Need to fix, requests hang here // Not sure if they still do (1/20/25)
 
   SerialUSB.println("Valid JSON processed:");
   serializeJsonPretty(jsonDoc, SerialUSB);
@@ -70,3 +79,4 @@ void JsonHandler::addMessage(const String& jsonMessage) {
     Serial.println(message.c_str());
   }
 }
+

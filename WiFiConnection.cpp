@@ -1,10 +1,24 @@
 #include "WiFiConnection.h"
 #include <Arduino.h>
 
+
+// Singleton accessor
+WiFiConnection& WiFiConnection::getInstance() {
+  static WiFiConnection instance;  // Guaranteed single instance
+  return instance;
+}
+
+
+/*
 WiFiConnection::WiFiConnection(const char* ssid, const char* password, uint16_t port)
   : ssid(ssid), password(password), port(port), server(port) {}
+*/
 
-void WiFiConnection::connect() {
+void WiFiConnection::connect(const char* ssid_, const char* password_, uint16_t port_) {
+  ssid = ssid_;
+  password = password_;
+  port = port_;
+
   SerialUSB.println("Starting Wi-Fi connection...");
   if (WiFi.status() == WL_NO_MODULE) {
     SerialUSB.println("Wi-Fi module not found. Stopping execution.");
@@ -121,7 +135,7 @@ void WiFiConnection::handlePostRequest(WiFiClient& client) {
     return;
   }
 
-  if (jsonHandler.processMessage(body)) {
+  if (JsonHandler::getInstance().processMessage(body)) {
     respondWithJson(client, 200, R"({"status": "success"})");
   } else {
     respondWithError(client, 400, "Invalid JSON");
@@ -152,4 +166,70 @@ void WiFiConnection::printStatus() {
   SerialUSB.println(WiFi.localIP());
   SerialUSB.print("RSSI: ");
   SerialUSB.println(WiFi.RSSI());
+}
+
+
+JsonDocument WiFiConnection::postRequest(const char* serverAddress, int serverPort, const char* resourcePath, const JsonDocument& requestDoc) {
+    WiFiClient client;
+    JsonDocument responseDoc;
+
+    // Connect to the server
+    SerialUSB.print("Connecting to server: ");
+    SerialUSB.println(serverAddress);
+    if (!client.connect(serverAddress, serverPort)) {
+        SerialUSB.println("Connection failed!");
+        return responseDoc; // Return an empty JsonDocument
+    }
+
+    // Serialize the JsonDocument to a JSON string
+    String postData;
+    serializeJson(requestDoc, postData);
+
+    // Construct the HTTP POST request
+    client.print("POST ");
+    client.print(resourcePath);
+    client.println(" HTTP/1.1");
+    client.print("Host: ");
+    client.println(serverAddress);
+    client.println("Content-Type: application/json");
+    client.print("Content-Length: ");
+    client.println(postData.length());
+    client.println("Connection: close");
+    client.println(); // End headers
+    client.println(postData); // Send the body
+
+    // Wait for a response
+    unsigned long timeout = millis();
+    while (client.available() == 0) {
+        if (millis() - timeout > 5000) {
+            SerialUSB.println("Server response timeout.");
+            client.stop();
+            return responseDoc;
+        }
+    }
+
+    // Read the response
+    String response = "";
+    while (client.available()) {
+        response += client.readString();
+    }
+    client.stop();
+
+    // Log the response
+    SerialUSB.println("Response:");
+    SerialUSB.println(response);
+
+    // Extract the body of the HTTP response
+    int bodyStartIndex = response.indexOf("\r\n\r\n") + 4;
+    String responseBody = response.substring(bodyStartIndex);
+
+    // Parse the response body directly
+    DeserializationError error = deserializeJson(responseDoc, responseBody);
+    if (error) {
+        SerialUSB.print("JSON Parsing failed: ");
+        SerialUSB.println(error.c_str());
+        responseDoc.clear(); // Clear document to ensure it's null
+    }
+
+    return responseDoc;
 }

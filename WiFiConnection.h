@@ -15,18 +15,21 @@
 
 class WiFiConnection {
 public:
-  WiFiConnection(const char* ssid, const char* password, uint16_t port = 80);
-  void connect();
+
+  static WiFiConnection& getInstance();  // Singleton accessor
+
+  void connect(const char* ssid_, const char* password_, uint16_t port_ = 80);
   void startServer();
   void handleClient();
   void printStatus();
+  JsonDocument postRequest(const char* serverAddress, int serverPort, const char* resourcePath, const JsonDocument& requestDoc);
+
 
 private:
   const char* ssid;
   const char* password;
   uint16_t port;
   WiFiServer server;
-  JsonHandler jsonHandler;
 
   const String exampleResponse = R"({
         "message": "Only POST requests are supported.",
@@ -41,6 +44,14 @@ private:
   void handlePostRequest(WiFiClient& client);
   void respondWithError(WiFiClient& client, int statusCode, const String& error);
   void respondWithJson(WiFiClient& client, int statusCode, const String& message);
+
+
+  WiFiConnection() = default;   // Private constructor
+  ~WiFiConnection() = default;  // Private destructor
+
+  // Delete copy constructor and assignment operator
+  WiFiConnection(const WiFiConnection&) = delete;
+  WiFiConnection& operator=(const WiFiConnection&) = delete;
 };
 
 #endif

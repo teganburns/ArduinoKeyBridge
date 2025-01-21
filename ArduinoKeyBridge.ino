@@ -15,9 +15,6 @@ HIDBoot<USB_HID_PROTOCOL_KEYBOARD> HidKeyboard(&Usb);
 MinimalKeyboard MyKB;
 CustomKeyboardParser Parser(MyKB);
 
-// Objects
-WiFiConnection wifiConnection(ssid, password);
-
 
 void setup() {
     // Initialize Serial
@@ -25,8 +22,8 @@ void setup() {
     while (!SerialUSB);
 
     // Connect to Wi-Fi
-    wifiConnection.connect();
-    wifiConnection.startServer();
+    WiFiConnection::getInstance().connect(ssid, password);
+    WiFiConnection::getInstance().startServer();
 
 
     // Setup USB Passthrough
@@ -45,6 +42,6 @@ void setup() {
 void loop() {
 
     Usb.Task();
-    wifiConnection.handleClient();
+    WiFiConnection::getInstance().handleClient();
 
 }

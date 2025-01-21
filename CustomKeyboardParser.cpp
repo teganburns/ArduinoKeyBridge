@@ -3,14 +3,9 @@
 #include "CustomKeyboardCommands.h"
 
 
-CustomKeyboardParser::CustomKeyboardParser(MinimalKeyboard& kb)
-  : keyboard(kb) {}
+CustomKeyboardParser::CustomKeyboardParser(MinimalKeyboard& kb) : keyboard(kb) {}
 
 void CustomKeyboardParser::Parse(USBHID* hid, bool is_rpt_id, uint8_t len, uint8_t* buf) {
-#if CUSTOM_KEYBOARD_PARSER_DEBUG
-  SerialUSB.print("Len: ");
-  SerialUSB.println(len);
-#endif
 
   // Ensure the report length is valid (at least 8 bytes)
   if (len < 8) return;
@@ -18,6 +13,7 @@ void CustomKeyboardParser::Parse(USBHID* hid, bool is_rpt_id, uint8_t len, uint8
   // Initialize a KeyReport structure to store the parsed keyboard report
   KeyReport report = { 0 };
   report.modifiers = buf[1];  // The second byte in the buffer contains modifier keys
+  
 
 #if CUSTOM_KEYBOARD_PARSER_DEBUG
   SerialUSB.println("---- Key Press Detected ----");
@@ -34,7 +30,8 @@ void CustomKeyboardParser::Parse(USBHID* hid, bool is_rpt_id, uint8_t len, uint8
     // Skip if no key is pressed in this slot (keyCode == 0)
     if (keyCode == 0) continue;
 
-    CustomKeyboardCommands::getInstance().processKey(keyCode);
+    //CustomKeyboardCommands::getInstance().processKey(keyCode);
+
 
     // Look up the key code in the unified key map
     bool keyFound = false;  // Track if the key code was found
@@ -47,7 +44,7 @@ void CustomKeyboardParser::Parse(USBHID* hid, bool is_rpt_id, uint8_t len, uint8
       // Check if the current key code matches the hexCode in the key map
       if (keyInfo.hexCode == keyCode) {
         keyFound = true;
-
+        CustomKeyboardCommands::getInstance().processKey(keyCode);
 #if CUSTOM_KEYBOARD_PARSER_DEBUG
         // Log the key information
         SerialUSB.print("Key Found: ");
@@ -80,28 +77,32 @@ void CustomKeyboardParser::Parse(USBHID* hid, bool is_rpt_id, uint8_t len, uint8
   }
 
 
-  // Send the processed keyboard report to the computer
+  // Send the processed keyboard report to the computer if not in COMMAND_MODE
   if (!CustomKeyboardCommands::getInstance().COMMAND_MODE) {
     keyboard.sendReport(&report);
 
-#if CUSTOM_KEYBOARD_PARSER_DEBUG
     // Log the final state of the keyboard report
     SerialUSB.print("Final Report Modifiers: ");
     SerialUSB.println(report.modifiers, HEX);
 
-    SerialUSB.print("Final Report Keys: ");
+    debugPrint("Final Report Keys: ");
     for (int i = 0; i < 6; i++) {
       SerialUSB.print("0x");
       SerialUSB.print(report.keys[i], HEX);
       SerialUSB.print(" ");
     }
     SerialUSB.println("\n---------------------------");  // Separator for better readability in logs
-#endif
-  } else {
-    // Command mode is active, skip sending the report
-    // Custom handling can occur in CustomKeyboardCommands::ProcessKey
-    SerialUSB.println("COMMAND_MODE ACTIVE");  // Separator for better readability in logs
 
+  } else {
+    // Command mode is active, skip sending the report // Custom handling can occur in CustomKeyboardCommands::ProcessKey
+    SerialUSB.print("COMMAND_MODE ACTIVE");  // Separator for better readability in logs
     SerialUSB.println("\n---------------------------");  // Separator for better readability in logs
+
   }
+}
+
+void CustomKeyboardParser::debugPrint(const char* message) {
+#if CUSTOM_KEYBOARD_PARSER_DEBUG
+  SerialUSB.println(message);
+#endif
 }

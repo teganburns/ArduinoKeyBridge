@@ -102,3 +102,46 @@ void MinimalKeyboard::sendMediaReport(uint16_t usage) {
     SerialUSB.print("Media Report Sent: Usage 0x");
     SerialUSB.println(usage, HEX);
 }
+
+
+
+void MinimalKeyboard::sendTimedMessage(String message, int time) {
+  
+    // Type out each character
+    for (uint8_t i = 0; i < message.length(); i++) {
+        char c = message[i];
+        uint8_t foundCode = 0;
+
+        // Search the unifiedKeyMap for the matching ASCII value
+        for (size_t j = 0; j < unifiedKeyMapSize; j++) {
+            KeyInfo k;
+            memcpy_P(&k, &unifiedKeyMap[j], sizeof(KeyInfo));
+            if (k.asciiValue == c) {
+                foundCode = k.hexCode;
+                break;
+            }
+        }
+
+        // Press
+        KeyReport press = {};
+        press.keys[0] = foundCode;
+        sendReport(&press);
+
+        // Release
+        KeyReport report = {};  // zero-initialize the struct
+        sendReport(&report);
+    }
+
+    // Wait the specified amount of time
+    delay(time);
+
+    // Press and release Backspace for each character
+    for (uint8_t i = 0; i < message.length(); i++) {
+        KeyReport pressBackspace{};
+        pressBackspace.keys[0] = 0x2A; // Backspace HID code
+        sendReport(&pressBackspace);
+
+        KeyReport report = {};  // zero-initialize the struct
+        sendReport(&report);
+    }
+}

@@ -18,6 +18,7 @@ protected:
 
 private:
     MinimalKeyboard& keyboard;
+    void debugPrint(const char* message);
 };
 
 
