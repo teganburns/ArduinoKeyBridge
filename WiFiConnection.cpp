@@ -1,5 +1,6 @@
 #include "WiFiConnection.h"
 #include <Arduino.h>
+#include "ArduinoKeyBridgeLogger.h"
 
 WiFiConnection& WiFiConnection::getInstance() {
   static WiFiConnection instance;
@@ -11,28 +12,27 @@ void WiFiConnection::connect(const char* ssid_, const char* password_, uint16_t 
   password = password_;
   port = port_;
 
-  SerialUSB.println("Starting Wi-Fi connection...");
+  ArduinoKeyBridgeLogger::getInstance().info("WiFi", "Starting Wi-Fi connection...");
   if (WiFi.status() == WL_NO_MODULE) {
-    SerialUSB.println("Wi-Fi module not found. Stopping execution.");
+    ArduinoKeyBridgeLogger::getInstance().error("WiFi", "Wi-Fi module not found. Stopping execution.");
     while (true);
   }
 
-  SerialUSB.print("Attempting to connect to SSID: ");
-  SerialUSB.println(ssid);
+  ArduinoKeyBridgeLogger::getInstance().info("WiFi", String("Attempting to connect to SSID: ") + ssid);
   WiFi.begin(ssid, password);
 
   while (WiFi.status() != WL_CONNECTED) {
     delay(1000);
-    SerialUSB.print(".");
+    ArduinoKeyBridgeLogger::getInstance().debug("WiFi", ".");
   }
 
-  SerialUSB.println("\nConnected to Wi-Fi!");
+  ArduinoKeyBridgeLogger::getInstance().info("WiFi", "Connected to Wi-Fi!");
   printStatus();
 }
 
 void WiFiConnection::startServer() {
   server.begin();
-  SerialUSB.println("Wi-Fi server started.");
+  ArduinoKeyBridgeLogger::getInstance().info("WiFi", "Wi-Fi server started.");
 }
 
 void WiFiConnection::handleClient() {
@@ -41,12 +41,11 @@ void WiFiConnection::handleClient() {
 
   String requestLine = client.readStringUntil('\n');
 
-  SerialUSB.println("New client connected.");
-  SerialUSB.print("Request Line: ");
-  SerialUSB.println(requestLine);
+  ArduinoKeyBridgeLogger::getInstance().info("WiFi", "New client connected.");
+  ArduinoKeyBridgeLogger::getInstance().debug("WiFi", String("Request Line: ") + requestLine);
 
   if (requestLine.length() == 0) {
-    SerialUSB.println("Empty request line. Closing connection.");
+    ArduinoKeyBridgeLogger::getInstance().debug("WiFi", "Empty request line. Closing connection.");
     client.stop();
     return;
   }
@@ -55,10 +54,8 @@ void WiFiConnection::handleClient() {
   String path = requestLine.substring(requestLine.indexOf(' ') + 1, requestLine.lastIndexOf(' '));
   path.trim();
 
-  SerialUSB.print("Request Method: ");
-  SerialUSB.println(method);
-  SerialUSB.print("Request Path: ");
-  SerialUSB.println(path);
+  ArduinoKeyBridgeLogger::getInstance().debug("WiFi", String("Request Method: ") + method);
+  ArduinoKeyBridgeLogger::getInstance().debug("WiFi", String("Request Path: ") + path);
 
   if (method == "GET") {
     handleGetRequest(client);
@@ -69,16 +66,16 @@ void WiFiConnection::handleClient() {
   }
 
   client.stop();
-  SerialUSB.println("Client disconnected.");
+  ArduinoKeyBridgeLogger::getInstance().info("WiFi", "Client disconnected.");
 }
 
 void WiFiConnection::handleGetRequest(WiFiClient& client) {
-  SerialUSB.println("Handling GET request...");
+  ArduinoKeyBridgeLogger::getInstance().info("WiFi", "Handling GET request...");
   respondWithJson(client, 200, exampleResponse);
 }
 
 void WiFiConnection::handlePostRequest(WiFiClient& client) {
-  SerialUSB.println("Handling POST request...");
+  ArduinoKeyBridgeLogger::getInstance().info("WiFi", "Handling POST request...");
 
   String body;
   if (client) {
@@ -91,13 +88,13 @@ void WiFiConnection::handlePostRequest(WiFiClient& client) {
     int bodyIndex = rawData.indexOf("\r\n\r\n");
     if (bodyIndex != -1) {
       body = rawData.substring(bodyIndex + 4);
-      Serial.println("Extracted Body:");
-      Serial.println(body);
+      ArduinoKeyBridgeLogger::getInstance().info("WiFi", "Extracted Body:");
+      ArduinoKeyBridgeLogger::getInstance().debug("WiFi", body);
     } else {
-      Serial.println("No body found in the response.");
+      ArduinoKeyBridgeLogger::getInstance().info("WiFi", "No body found in the response.");
     }
   } else {
-    Serial.println("Client not connected.");
+    ArduinoKeyBridgeLogger::getInstance().info("WiFi", "Client not connected.");
   }
 
   if (body.isEmpty()) {
@@ -130,22 +127,18 @@ void WiFiConnection::respondWithJson(WiFiClient& client, int statusCode, const S
 }
 
 void WiFiConnection::printStatus() {
-  SerialUSB.print("SSID: ");
-  SerialUSB.println(WiFi.SSID());
-  SerialUSB.print("IP Address: ");
-  SerialUSB.println(WiFi.localIP());
-  SerialUSB.print("RSSI: ");
-  SerialUSB.println(WiFi.RSSI());
+  ArduinoKeyBridgeLogger::getInstance().info("WiFi", String("SSID: ") + WiFi.SSID());
+  ArduinoKeyBridgeLogger::getInstance().info("WiFi", String("IP Address: ") + WiFi.localIP());
+  ArduinoKeyBridgeLogger::getInstance().info("WiFi", String("RSSI: ") + WiFi.RSSI());
 }
 
 JsonDocument WiFiConnection::postRequest(const char* serverAddress, int serverPort, const char* resourcePath, const JsonDocument& requestDoc) {
   WiFiClient client;
   JsonDocument responseDoc;
 
-  SerialUSB.print("Connecting to server: ");
-  SerialUSB.println(serverAddress);
+  ArduinoKeyBridgeLogger::getInstance().info("WiFi", String("Connecting to server: ") + serverAddress);
   if (!client.connect(serverAddress, serverPort)) {
-    SerialUSB.println("Connection failed!");
+    ArduinoKeyBridgeLogger::getInstance().error("WiFi", "Connection failed!");
     return responseDoc;
   }
 
@@ -167,7 +160,7 @@ JsonDocument WiFiConnection::postRequest(const char* serverAddress, int serverPo
   unsigned long timeout = millis();
   while (client.available() == 0) {
     if (millis() - timeout > 5000) {
-      SerialUSB.println("Server response timeout.");
+      ArduinoKeyBridgeLogger::getInstance().error("WiFi", "Server response timeout.");
       client.stop();
       return responseDoc;
     }
@@ -179,16 +172,15 @@ JsonDocument WiFiConnection::postRequest(const char* serverAddress, int serverPo
   }
   client.stop();
 
-  SerialUSB.println("Response:");
-  SerialUSB.println(response);
+  ArduinoKeyBridgeLogger::getInstance().info("WiFi", "Response:");
+  ArduinoKeyBridgeLogger::getInstance().debug("WiFi", response);
 
   int bodyStartIndex = response.indexOf("\r\n\r\n") + 4;
   String responseBody = response.substring(bodyStartIndex);
 
   DeserializationError error = deserializeJson(responseDoc, responseBody);
   if (error) {
-    SerialUSB.print("JSON Parsing failed: ");
-    SerialUSB.println(error.c_str());
+    ArduinoKeyBridgeLogger::getInstance().error("WiFi", String("JSON Parsing failed: ") + error.c_str());
     responseDoc.clear();
   }
 

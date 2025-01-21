@@ -10,6 +10,7 @@
 #include <WiFiServer.h>
 #include <functional>
 #include "JsonHandler.h"
+#include "ArduinoKeyBridgeLogger.h"
 
 class WiFiConnection {
 public:

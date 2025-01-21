@@ -1,5 +1,6 @@
 #include "JsonHandler.h"
 #include <Arduino.h>
+#include "ArduinoKeyBridgeLogger.h"
 
 JsonHandler& JsonHandler::getInstance() {
   static JsonHandler instance;
@@ -7,31 +8,17 @@ JsonHandler& JsonHandler::getInstance() {
 }
 
 bool JsonHandler::processMessage(const String& message) {
-  SerialUSB.print("Message: ");
-  SerialUSB.println(message);
+  ArduinoKeyBridgeLogger::getInstance().debug("JsonHandler", "Processing message: " + message);
   
   JsonDocument jsonDoc;
   DeserializationError error = deserializeJson(jsonDoc, message);
 
   if (error) {
-    SerialUSB.println("Invalid JSON received.");
-    SerialUSB.print("Error Message: ");
-    SerialUSB.println(error.c_str());
-    SerialUSB.print("Hex data: ");
-    for (size_t i = 0; i < message.length(); i++) {
-      char c = message[i];
-      if (c < 16) SerialUSB.print("0");
-      SerialUSB.print(c, HEX);
-      SerialUSB.print(" ");
-    }
-    SerialUSB.println();
+    ArduinoKeyBridgeLogger::getInstance().error("JsonHandler", String("Invalid JSON: ") + error.c_str());
     return false;
   }
 
-  SerialUSB.println("Valid JSON processed:");
-  serializeJsonPretty(jsonDoc, SerialUSB);
-  SerialUSB.println();
-
+  ArduinoKeyBridgeLogger::getInstance().info("JsonHandler", "Valid JSON processed successfully");
   return true;
 }
 

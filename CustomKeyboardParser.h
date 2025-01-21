@@ -7,6 +7,7 @@
 
 #include <hidboot.h>
 #include "MinimalKeyboard.h"
+#include "ArduinoKeyBridgeLogger.h"
 
 class CustomKeyboardParser : public KeyboardReportParser {
 public:

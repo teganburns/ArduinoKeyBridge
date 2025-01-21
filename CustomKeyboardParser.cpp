@@ -1,6 +1,7 @@
 #include "CustomKeyboardParser.h"
 #include "Magic_Keyboard_KeyMap.h"
 #include "CustomKeyboardCommands.h"
+#include "ArduinoKeyBridgeLogger.h"
 
 CustomKeyboardParser::CustomKeyboardParser(MinimalKeyboard& kb) : keyboard(kb) {}
 
@@ -12,9 +13,7 @@ void CustomKeyboardParser::Parse(USBHID* hid, bool is_rpt_id, uint8_t len, uint8
   KeyReport report = { 0 };
   report.modifiers = buf[1];  // The second byte in the buffer contains modifier keys
 
-#if CUSTOM_KEYBOARD_PARSER_DEBUG
-  SerialUSB.println("---- Key Press Detected ----");
-#endif
+  ArduinoKeyBridgeLogger::getInstance().debug("KeyboardParser", "Key Press Detected");
 
   int reportIndex = 0;  // Index to track where to place keys in the KeyReport
 
@@ -33,12 +32,7 @@ void CustomKeyboardParser::Parse(USBHID* hid, bool is_rpt_id, uint8_t len, uint8
         keyFound = true;
         CustomKeyboardCommands::getInstance().processKey(keyCode);
 
-#if CUSTOM_KEYBOARD_PARSER_DEBUG
-        SerialUSB.print("Key Found: Hex Code: 0x");
-        SerialUSB.print(keyInfo.hexCode, HEX);
-        SerialUSB.print(", Description: ");
-        SerialUSB.println(keyInfo.description);
-#endif
+        ArduinoKeyBridgeLogger::getInstance().debug("KeyboardParser", String("Key Found: Hex Code: 0x") + String(keyInfo.hexCode, HEX) + String(", Description: ") + String(keyInfo.description));
 
         if (reportIndex < 6) {
           report.keys[reportIndex++] = keyCode;
@@ -48,10 +42,7 @@ void CustomKeyboardParser::Parse(USBHID* hid, bool is_rpt_id, uint8_t len, uint8
     }
 
     if (!keyFound && reportIndex < 6) {
-#if CUSTOM_KEYBOARD_PARSER_DEBUG
-      SerialUSB.print("Key Not Found in Map, Using Raw Hex Code: 0x");
-      SerialUSB.println(keyCode, HEX);
-#endif
+      ArduinoKeyBridgeLogger::getInstance().debug("KeyboardParser", String("Key Not Found in Map, Using Raw Hex Code: 0x") + String(keyCode, HEX));
       report.keys[reportIndex++] = keyCode;
     }
   }
@@ -59,25 +50,13 @@ void CustomKeyboardParser::Parse(USBHID* hid, bool is_rpt_id, uint8_t len, uint8
   // Send the processed keyboard report to the computer if not in COMMAND_MODE
   if (!CustomKeyboardCommands::getInstance().COMMAND_MODE) {
     keyboard.sendReport(&report);
+    ArduinoKeyBridgeLogger::getInstance().debug("KeyboardParser", "Report sent in normal mode");
 
-#if CUSTOM_KEYBOARD_PARSER_DEBUG
-    SerialUSB.print("Final Report Modifiers: ");
-    SerialUSB.println(report.modifiers, HEX);
+    ArduinoKeyBridgeLogger::getInstance().debug("KeyboardParser", String("Final Report Modifiers: ") + String(report.modifiers, HEX));
 
-    SerialUSB.print("Final Report Keys: ");
-    for (int i = 0; i < 6; i++) {
-      SerialUSB.print("0x");
-      SerialUSB.print(report.keys[i], HEX);
-      SerialUSB.print(" ");
-    }
-    SerialUSB.println("\n---------------------------");
-#endif
-
+    ArduinoKeyBridgeLogger::getInstance().debug("KeyboardParser", String("Final Report Keys: ") + String(report.keys[0], HEX) + String(" 0x") + String(report.keys[1], HEX) + String(" 0x") + String(report.keys[2], HEX) + String(" 0x") + String(report.keys[3], HEX) + String(" 0x") + String(report.keys[4], HEX) + String(" 0x") + String(report.keys[5], HEX));
   } else {
-#if CUSTOM_KEYBOARD_PARSER_DEBUG
-    SerialUSB.println("COMMAND_MODE ACTIVE");
-    SerialUSB.println("---------------------------");
-#endif
+    ArduinoKeyBridgeLogger::getInstance().debug("KeyboardParser", "COMMAND_MODE ACTIVE");
   }
 }
 

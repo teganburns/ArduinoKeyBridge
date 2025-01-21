@@ -2,6 +2,7 @@
 #include "WiFiConnection.h"
 #include "JsonHandler.h"
 #include "CustomKeyboardParser.h"
+#include "ArduinoKeyBridgeLogger.h"
 
 // Wi-Fi credentials for network connection
 const char* ssid = "BetaRouter";
@@ -16,9 +17,8 @@ MinimalKeyboard MyKB;
 CustomKeyboardParser Parser(MyKB);
 
 void setup() {
-    // Initialize Serial communication at 115200 baud
-    SerialUSB.begin(115200);
-    while (!SerialUSB); // Wait for Serial connection
+    ArduinoKeyBridgeLogger::getInstance().begin(115200);
+    ArduinoKeyBridgeLogger::getInstance().setLogLevel(LogLevel::DEBUG);
 
     // Initialize WiFi connection and start web server
     WiFiConnection::getInstance().connect(ssid, password);
@@ -26,16 +26,16 @@ void setup() {
 
     // Initialize USB Host Shield
     if (Usb.Init() == -1) {
-        SerialUSB.println("USB initialization failed");
+        ArduinoKeyBridgeLogger::getInstance().error("Setup", "USB initialization failed");
         while (1); // Halt if USB init fails
     }
-    SerialUSB.println("USB initialized");
+    ArduinoKeyBridgeLogger::getInstance().info("Setup", "USB initialized");
 
     // Configure keyboard parser and initialize keyboard
     HidKeyboard.SetReportParser(0, &Parser);
     MyKB.begin();
 
-    SerialUSB.println("Setup...OK");
+    ArduinoKeyBridgeLogger::getInstance().info("Setup", "Setup completed successfully");
 }
 
 void loop() {

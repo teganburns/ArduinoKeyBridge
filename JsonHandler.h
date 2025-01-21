@@ -4,6 +4,7 @@
 #include <ArduinoJson.h>
 #include <queue>
 #include <string>
+#include "ArduinoKeyBridgeLogger.h"
 
 class JsonHandler {
 public:
