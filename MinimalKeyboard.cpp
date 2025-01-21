@@ -46,8 +46,6 @@ const uint8_t MinimalKeyboard::HID_REPORT_DESCRIPTOR[] PROGMEM = {
 };
 */
 
-//Uncommented
-
 const uint8_t MinimalKeyboard::HID_REPORT_DESCRIPTOR[] PROGMEM = {
     //  Keyboard
     0x05, 0x01,                    // USAGE_PAGE (Generic Desktop)  // 47
@@ -78,9 +76,7 @@ const uint8_t MinimalKeyboard::HID_REPORT_DESCRIPTOR[] PROGMEM = {
     0x29, 0x73,                    //   USAGE_MAXIMUM (Keyboard Application)
     0x81, 0x00,                    //   INPUT (Data,Ary,Abs)
     0xc0,                          // END_COLLECTION
-
 };
-
 
 MinimalKeyboard::MinimalKeyboard() {
     static HIDSubDescriptor node(HID_REPORT_DESCRIPTOR, sizeof(HID_REPORT_DESCRIPTOR));
@@ -94,25 +90,20 @@ void MinimalKeyboard::sendReport(KeyReport* report) {
 }
 
 void MinimalKeyboard::sendMediaReport(uint16_t usage) {
-    // Create the consumer control HID report
     uint8_t report[3] = {0x03, (uint8_t)usage, (uint8_t)(usage >> 8)};
     HID().SendReport(3, report, sizeof(report));
 
-    // Debugging output
     SerialUSB.print("Media Report Sent: Usage 0x");
     SerialUSB.println(usage, HEX);
 }
 
-
-
 void MinimalKeyboard::sendTimedMessage(String message, int time) {
-  
-    // Type out each character
+    // Type message
     for (uint8_t i = 0; i < message.length(); i++) {
         char c = message[i];
         uint8_t foundCode = 0;
 
-        // Search the unifiedKeyMap for the matching ASCII value
+        // Find matching keycode
         for (size_t j = 0; j < unifiedKeyMapSize; j++) {
             KeyInfo k;
             memcpy_P(&k, &unifiedKeyMap[j], sizeof(KeyInfo));
@@ -122,26 +113,24 @@ void MinimalKeyboard::sendTimedMessage(String message, int time) {
             }
         }
 
-        // Press
+        // Press and release
         KeyReport press = {};
         press.keys[0] = foundCode;
         sendReport(&press);
-
-        // Release
-        KeyReport report = {};  // zero-initialize the struct
-        sendReport(&report);
+        
+        KeyReport release = {};
+        sendReport(&release);
     }
 
-    // Wait the specified amount of time
     delay(time);
 
-    // Press and release Backspace for each character
+    // Delete message
     for (uint8_t i = 0; i < message.length(); i++) {
         KeyReport pressBackspace{};
-        pressBackspace.keys[0] = 0x2A; // Backspace HID code
+        pressBackspace.keys[0] = 0x2A;
         sendReport(&pressBackspace);
 
-        KeyReport report = {};  // zero-initialize the struct
-        sendReport(&report);
+        KeyReport release = {};
+        sendReport(&release);
     }
 }

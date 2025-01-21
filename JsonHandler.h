@@ -7,13 +7,9 @@
 
 class JsonHandler {
 public:
-
   static JsonHandler& getInstance();  // Singleton accessor
-
-  //JsonHandler(size_t bufferLimit = 5, size_t maxSize = 2048);
   bool processMessage(const String& message);
   String getMessagesAsString() const;
-
 
 private:
   std::queue<std::string> messageBuffer;
@@ -24,10 +20,8 @@ private:
 
   JsonHandler() = default;   // Private constructor
   ~JsonHandler() = default;  // Private destructor
-
-  // Delete copy constructor and assignment operator
-  JsonHandler(const JsonHandler&) = delete;
-  JsonHandler& operator=(const JsonHandler&) = delete;
+  JsonHandler(const JsonHandler&) = delete;  // Delete copy constructor
+  JsonHandler& operator=(const JsonHandler&) = delete;  // Delete assignment operator
 };
 
 #endif

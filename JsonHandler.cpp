@@ -1,22 +1,15 @@
 #include "JsonHandler.h"
 #include <Arduino.h>
 
-
-// Singleton accessor
 JsonHandler& JsonHandler::getInstance() {
-  static JsonHandler instance;  // Guaranteed single instance
+  static JsonHandler instance;
   return instance;
 }
 
-/*
-JsonHandler::JsonHandler(size_t bufferLimit, size_t maxSize)
-  : bufferLimit(bufferLimit), maxSize(maxSize) {}
-*/
-
 bool JsonHandler::processMessage(const String& message) {
-
   SerialUSB.print("Message: ");
   SerialUSB.println(message);
+  
   JsonDocument jsonDoc;
   DeserializationError error = deserializeJson(jsonDoc, message);
 
@@ -27,17 +20,13 @@ bool JsonHandler::processMessage(const String& message) {
     SerialUSB.print("Hex data: ");
     for (size_t i = 0; i < message.length(); i++) {
       char c = message[i];
-      if (c < 16) Serial.print("0");  // Add leading zero for single-digit hex
-      Serial.print(c, HEX);
-      Serial.print(" ");  // Separate bytes
+      if (c < 16) SerialUSB.print("0");
+      SerialUSB.print(c, HEX);
+      SerialUSB.print(" ");
     }
-    Serial.println();  // End line after printing
-
-
+    SerialUSB.println();
     return false;
   }
-
-  //addMessage(message); // TODO: Need to fix, requests hang here // Not sure if they still do (1/20/25)
 
   SerialUSB.println("Valid JSON processed:");
   serializeJsonPretty(jsonDoc, SerialUSB);
@@ -68,15 +57,10 @@ void JsonHandler::addMessage(const String& jsonMessage) {
   }
   messageBuffer.push(jsonMessage.c_str());
 
-
   SerialUSB.print("Current message buffer: ");
-  // Print all messages in the queue
-  while (!messageBuffer.empty()) {
-    // Get the front message
-    std::string message = messageBuffer.front();
-
-    // Print the message
-    Serial.println(message.c_str());
+  std::queue<std::string> tempBuffer = messageBuffer;
+  while (!tempBuffer.empty()) {
+    SerialUSB.println(tempBuffer.front().c_str());
+    tempBuffer.pop();
   }
 }
-

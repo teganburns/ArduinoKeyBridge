@@ -1,7 +1,6 @@
 #ifndef CUSTOM_KEYBOARD_PARSER_H
 #define CUSTOM_KEYBOARD_PARSER_H
 
-// Define debugging flag
 #ifndef CUSTOM_KEYBOARD_PARSER_DEBUG
 #define CUSTOM_KEYBOARD_PARSER_DEBUG true
 #endif
@@ -10,9 +9,9 @@
 #include "MinimalKeyboard.h"
 
 class CustomKeyboardParser : public KeyboardReportParser {
-
 public:
     CustomKeyboardParser(MinimalKeyboard& keyboard);
+    
 protected:
     void Parse(USBHID* hid, bool is_rpt_id, uint8_t len, uint8_t* buf) override;
 
@@ -20,6 +19,5 @@ private:
     MinimalKeyboard& keyboard;
     void debugPrint(const char* message);
 };
-
 
 #endif
