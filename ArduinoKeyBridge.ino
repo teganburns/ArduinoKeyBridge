@@ -13,8 +13,7 @@ USB Usb;
 HIDBoot<USB_HID_PROTOCOL_KEYBOARD> HidKeyboard(&Usb);
 
 // Keyboard and Parser instances for handling input
-MinimalKeyboard MyKB;
-CustomKeyboardParser Parser(MyKB);
+CustomKeyboardParser Parser(MinimalKeyboard::getInstance());
 
 void setup() {
     ArduinoKeyBridgeLogger::getInstance().begin(115200);
@@ -33,7 +32,7 @@ void setup() {
 
     // Configure keyboard parser and initialize keyboard
     HidKeyboard.SetReportParser(0, &Parser);
-    MyKB.begin();
+    MinimalKeyboard::getInstance().begin();
 
     ArduinoKeyBridgeLogger::getInstance().info("Setup", "Setup completed successfully");
 }

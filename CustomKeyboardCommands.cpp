@@ -1,3 +1,46 @@
+/*
+ * Note - Custom Keyboard commands
+ * -----------------
+ * 
+ * F13 (0x68): Reserved for future use
+ * F14 (0x69): Reserved for future use  
+ * F15 (0x6A): Reserved for future use
+ * F16 (0x6B): Toggle command mode on/off
+ * F17 (0x6C): Enter key press mode (active while held)
+ * F18 (0x6D): Reserved for future use
+ *
+ *
+ * Command Mode Notes
+ * -------------------
+ * Command mode is toggled by pressing F16 (0x6B)
+ * When active, normal key input is suspended and the following commands are available:
+ * - capture - capture a screenshot and send it to the server
+ * - send - send screenshots and message to ChatGPT
+ * - set - designate custom message to send the server
+ *
+ * Key Press Mode Notes
+ * -------------------
+ * Activated by pressing F17
+ * 
+ * Synopsis: MinimalKeyboard::getInstance().sendMessageOnPress(String message) takes a message and "types" it out one character at a time. 
+ * This function enables keypress mode, allowing the Arduino to simulate keyboard input. 
+ * As the user types random letters (A-Z), the Arduino outputs a predefined message or server-retrieved answer, 
+ * giving the appearance that the user is typing the message themselves.
+ * 
+ * When active:
+ * - Normal key input is suspended
+ * - A message is set by MinimalKeyboard::getInstance().setKeyPressMessage(String message)
+ * - Each key press triggers a single character output as determined by the input from MinimalKeyboard::getInstance().sendCharacterFromKeyPressMessage()
+ * - Used for character-by-character input control
+ * - Deactivates when F17 is pressed again
+ */
+
+
+
+
+
+
+
 #include "CustomKeyboardCommands.h"
 #include <Arduino.h>
 
@@ -9,9 +52,7 @@ CustomKeyboardCommands& CustomKeyboardCommands::getInstance() {
 }
 
 void CustomKeyboardCommands::init() {
-#if CUSTOM_KEYBOARD_COMMANDS_DEBUG
-  debugPrint("CustomKeyboardCommands initialized.");
-#endif
+  ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "CustomKeyboardCommands initialized.");
 }
 
 void CustomKeyboardCommands::processKey(uint8_t keycode) {
@@ -25,88 +66,112 @@ void CustomKeyboardCommands::processKey(uint8_t keycode) {
     case 0x6C: handleF17(); break;
     case 0x6D: handleF18(); break;
     default:
-#if CUSTOM_KEYBOARD_COMMANDS_DEBUG
-      debugPrint("Unhandled keycode.");
-#endif
+      ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "Unhandled keycode.");
       break;
   }
 }
 
 void CustomKeyboardCommands::handleKeyPress(uint8_t keycode) {
-  SerialUSB.print("Keycode: 0x");
-  SerialUSB.println(keycode, HEX);
+  ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", String("Keycode: 0x") + String(keycode, HEX));
 
   const KeyInfo* keyInfo = lookupKey(keycode);
   if (keyInfo != nullptr) {
-    SerialUSB.println(keyInfo->description);
+    ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", keyInfo->description);
   } else {
-    SerialUSB.println("Key not found!");
+    ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "Key not found!");
   }
   
-  SerialUSB.print("CURRENT BUFFER: ");
-  SerialUSB.println(convertCommandBufferToASCII());
-
+  if (MinimalKeyboard::getInstance().KEY_PRESS_MODE) {
+    MinimalKeyboard::getInstance().KEY_PRESS = true;
+    // Remove the return statement to allow key processing to continue
+  }
+  
+  // TODO: COMMAND_MODE and KEY_PRESS_MODE need to be handeled in a more elegant way. Varialbles belong to diffrent classes and functions operate at diffrent places. 
   if (COMMAND_MODE) {
-    if (keycode == 0x28 || keycode == 0x58) {
+    if (keycode == 0x28 || keycode == 0x58) { // Enter/Return key
       handleCommand();
       memset(COMMAND_BUFFER_ARRAY, '\0', sizeof(COMMAND_BUFFER_ARRAY));
     } else {
       appendKeyInfoToCommandBuffer(keyInfo->hexCode);
     }
+    ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", String("CURRENT BUFFER: ") + String(convertCommandBufferToASCII()));
   }
 
-#if CUSTOM_KEYBOARD_COMMANDS_DEBUG
-  debugPrint("end of handleKeyPress()");
-#endif
+  if (MinimalKeyboard::getInstance().KEY_PRESS_MODE) {
+    MinimalKeyboard::getInstance().sendCharacterFromKeyPressMessage();
+    ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", String("CURRENT BUFFER: ") + String(MinimalKeyboard::getInstance().KEY_PRESS_MESSAGE));
+  } 
+
+  ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "end of handleKeyPress()");
 }
 
 void CustomKeyboardCommands::handleF13() {
-  debugPrint("F13 pressed.");
+  ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "F13 pressed.");
 }
 
 void CustomKeyboardCommands::handleF14() {
-  debugPrint("F14 pressed.");
+  ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "F14 pressed.");
 }
 
 void CustomKeyboardCommands::handleF15() {
-  debugPrint("F15 pressed.");
+  ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "F15 pressed.");
 }
 
 void CustomKeyboardCommands::handleF16() {
-  debugPrint("F16 pressed.");
+  ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "F16 pressed.");
   COMMAND_MODE = !COMMAND_MODE;
   
   if (!COMMAND_MODE) {
     CustomKeyboardCommands::getInstance().clearCommandBuffer();
-    debugPrint("Command Buffer Cleared ");
+    ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "Command Buffer Cleared");
   }
 }
 
 void CustomKeyboardCommands::handleF17() {
-  debugPrint("F17 pressed.");
+  ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "F17 pressed.");
+  
+  if (COMMAND_MODE) {
+    ArduinoKeyBridgeLogger::getInstance().info("CustomKeyboardCommands", "Cannot start KEY_PRESS_MODE while in COMMAND_MODE");
+    return;
+  }
+
+  // If KEY_PRESS_MODE is already active, disable it otherwise enable it and set the message
+  if (MinimalKeyboard::getInstance().KEY_PRESS_MODE) {
+    MinimalKeyboard::getInstance().KEY_PRESS_MODE = false;
+    ArduinoKeyBridgeLogger::getInstance().info("CustomKeyboardCommands", "KEY_PRESS_MODE disabled");
+
+  } else {
+    // Enable KEY_PRESS_MODE
+    MinimalKeyboard::getInstance().KEY_PRESS_MODE = true;
+    ArduinoKeyBridgeLogger::getInstance().info("CustomKeyboardCommands", "KEY_PRESS_MODE enabled");
+
+    // Set KEY_PRESS_MESSAGE. This is temporary.
+    //MinimalKeyboard::getInstance().setKeyPressMessage("Hello World! This is a test message.");
+
+    MinimalKeyboard::getInstance().setKeyPressMessage("```python\nprint("H   H")\nprint("H   H")\nprint("HHHHH")\nprint("H   H")\nprint("H   H")\n```");
+
+    // Set KEY_PRESS to true. TODO: I don't think this is needed.
+    MinimalKeyboard::getInstance().KEY_PRESS = true;
+  }
+
 }
 
 void CustomKeyboardCommands::handleF18() {
-  debugPrint("F18 pressed.");
+  ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "F18 pressed.");
 }
 
 void CustomKeyboardCommands::handleCommand() {
-#if CUSTOM_KEYBOARD_COMMANDS_DEBUG
-  SerialUSB.print("COMMAND TO BE EXECUTED: ");
-  SerialUSB.println(convertCommandBufferToASCII());
-#endif
+  ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", String("COMMAND TO BE EXECUTED: ") + String(convertCommandBufferToASCII()));
   executeCommand();
 }
 
 void CustomKeyboardCommands::debugPrint(const char* message) {
-#if CUSTOM_KEYBOARD_COMMANDS_DEBUG
-  SerialUSB.println(message);
-#endif
+  ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", message);
 }
 
 void CustomKeyboardCommands::clearCommandBuffer() {
   memset(COMMAND_BUFFER_ARRAY, 0, sizeof(COMMAND_BUFFER_ARRAY));
-  SerialUSB.println("COMMAND_BUFFER_ARRAY cleared.");
+  ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "COMMAND_BUFFER_ARRAY cleared.");
 }
 
 const KeyInfo* CustomKeyboardCommands::lookupKey(uint8_t keycode) {
@@ -127,19 +192,18 @@ void CustomKeyboardCommands::appendKeyInfoToCommandBuffer(uint8_t keycode) {
     for (size_t i = 0; i < sizeof(COMMAND_BUFFER_ARRAY) / sizeof(COMMAND_BUFFER_ARRAY[0]); i++) {
       if (COMMAND_BUFFER_ARRAY[i].hexCode == 0) {
         COMMAND_BUFFER_ARRAY[i] = *keyInfo;
-        SerialUSB.print("Appended KeyInfo: Hex Code: 0x");
-        SerialUSB.print(keyInfo->hexCode, HEX);
-        SerialUSB.print(", ASCII: ");
+        String logMessage = String("Appended KeyInfo: Hex Code: 0x") + String(keyInfo->hexCode, HEX) + String(", ASCII: ");
         if (keyInfo->asciiValue != -1)
-          SerialUSB.println((char)keyInfo->asciiValue);
+          logMessage += String((char)keyInfo->asciiValue);
         else
-          SerialUSB.println("N/A");
+          logMessage += "N/A";
+        ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", logMessage);
         return;
       }
     }
-    SerialUSB.println("COMMAND_BUFFER_ARRAY is full.");
+    ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "COMMAND_BUFFER_ARRAY is full.");
   } else {
-    SerialUSB.println("Keycode not found in map.");
+    ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "Keycode not found in map.");
   }
 }
 
@@ -152,7 +216,7 @@ char* CustomKeyboardCommands::convertCommandBufferToASCII() {
 
   char* asciiResult = (char*)malloc(length + 1);
   if (asciiResult == nullptr) {
-    SerialUSB.println("Memory allocation failed.");
+    ArduinoKeyBridgeLogger::getInstance().error("CustomKeyboardCommands", "Memory allocation failed.");
     return nullptr;
   }
 
@@ -167,7 +231,7 @@ char* CustomKeyboardCommands::convertCommandBufferToASCII() {
 
 void CustomKeyboardCommands::executeCommand() {
   if (COMMAND_BUFFER_ARRAY[0].hexCode == 0) {
-    SerialUSB.println("No command found in buffer.");
+    ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "No command found in buffer.");
     return;
   }
 
@@ -180,8 +244,7 @@ void CustomKeyboardCommands::executeCommand() {
   } else if (command == "set") {
     handleSetCommand();
   } else {
-    SerialUSB.print("Unknown command: ");
-    SerialUSB.println(command);
+    ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", String("Unknown command: ") + command);
   }
 
   clearCommandBuffer();
@@ -203,10 +266,10 @@ String CustomKeyboardCommands::convertKeyInfoToCommand() {
 }
 
 void CustomKeyboardCommands::handleCaptureCommand() {
-  SerialUSB.println("Executing capture command...");
+  ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "Executing capture command...");
   const char* resourcePath = "/capture";
-  MinimalKeyboard kb;
-  kb.sendTimedMessage("capture", 200);
+  
+  MinimalKeyboard::getInstance().sendTimedMessage("capture", 200);
 
   JsonDocument requestDoc;
   requestDoc[""] = "";
@@ -214,15 +277,14 @@ void CustomKeyboardCommands::handleCaptureCommand() {
   JsonDocument responseDoc = WiFiConnection::getInstance().postRequest(serverAddress, serverPort, resourcePath, requestDoc);
 
   if (!responseDoc.isNull() && responseDoc.containsKey("message")) {
-    SerialUSB.print("Message: ");
-    SerialUSB.println(responseDoc["message"].as<const char*>());
+    ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", String("Message: ") + responseDoc["message"].as<const char*>());
   } else {
-    SerialUSB.println("Message field not found in response.");
+    ArduinoKeyBridgeLogger::getInstance().error("CustomKeyboardCommands", "Message field not found in response.");
   }
 }
 
 void CustomKeyboardCommands::handleSendCommand() {
-  SerialUSB.println("Executing send command...");
+  ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "Executing send command...");
   const char* resourcePath = "/send_request";
 
   JsonDocument requestDoc;
@@ -231,13 +293,12 @@ void CustomKeyboardCommands::handleSendCommand() {
   JsonDocument responseDoc = WiFiConnection::getInstance().postRequest(serverAddress, serverPort, resourcePath, requestDoc);
 
   if (!responseDoc.isNull() && responseDoc.containsKey("message")) {
-    SerialUSB.print("Message: ");
-    SerialUSB.println(responseDoc["message"].as<const char*>());
+    ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", String("Message: ") + responseDoc["message"].as<const char*>());
   } else {
-    SerialUSB.println("Message field not found in response.");
+    ArduinoKeyBridgeLogger::getInstance().error("CustomKeyboardCommands", "Message field not found in response.");
   }
 }
 
 void CustomKeyboardCommands::handleSetCommand() {
-  SerialUSB.println("Executing Set command...");
+  ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "Executing Set command...");
 }

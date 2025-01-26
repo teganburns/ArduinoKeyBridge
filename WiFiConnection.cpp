@@ -42,6 +42,7 @@ void WiFiConnection::handleClient() {
   String requestLine = client.readStringUntil('\n');
 
   ArduinoKeyBridgeLogger::getInstance().info("WiFi", "New client connected.");
+  ArduinoKeyBridgeLogger::getInstance().info("WiFi", String("Client IP: ") + client.remoteIP().toString());
   ArduinoKeyBridgeLogger::getInstance().debug("WiFi", String("Request Line: ") + requestLine);
 
   if (requestLine.length() == 0) {
@@ -128,7 +129,7 @@ void WiFiConnection::respondWithJson(WiFiClient& client, int statusCode, const S
 
 void WiFiConnection::printStatus() {
   ArduinoKeyBridgeLogger::getInstance().info("WiFi", String("SSID: ") + WiFi.SSID());
-  ArduinoKeyBridgeLogger::getInstance().info("WiFi", String("IP Address: ") + WiFi.localIP());
+  ArduinoKeyBridgeLogger::getInstance().info("WiFi", String("IP Address: ") + WiFi.localIP().toString());
   ArduinoKeyBridgeLogger::getInstance().info("WiFi", String("RSSI: ") + WiFi.RSSI());
 }
 

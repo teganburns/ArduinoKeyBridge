@@ -1,4 +1,5 @@
 #include "MinimalKeyboard.h"
+#include "arduinoKeyBridgeLogger.h"
 
 // Define the HID report descriptor in the .cpp file
 /*
@@ -78,6 +79,11 @@ const uint8_t MinimalKeyboard::HID_REPORT_DESCRIPTOR[] PROGMEM = {
     0xc0,                          // END_COLLECTION
 };
 
+MinimalKeyboard& MinimalKeyboard::getInstance() {
+    static MinimalKeyboard instance;
+    return instance;
+}
+
 MinimalKeyboard::MinimalKeyboard() {
     static HIDSubDescriptor node(HID_REPORT_DESCRIPTOR, sizeof(HID_REPORT_DESCRIPTOR));
     HID().AppendDescriptor(&node);
@@ -127,10 +133,74 @@ void MinimalKeyboard::sendTimedMessage(String message, int time) {
     // Delete message
     for (uint8_t i = 0; i < message.length(); i++) {
         KeyReport pressBackspace{};
-        pressBackspace.keys[0] = 0x2A;
+        pressBackspace.keys[0] = 0x02; // Left Shift
         sendReport(&pressBackspace);
 
         KeyReport release = {};
         sendReport(&release);
     }
+}
+
+
+void MinimalKeyboard::setKeyPressMessage(String message) {
+    KEY_PRESS_MESSAGE = strdup(message.c_str());
+    ArduinoKeyBridgeLogger::getInstance().debug("MinimalKeyboard", String("Key press message set to: ") + String(KEY_PRESS_MESSAGE));
+}
+
+void MinimalKeyboard::sendCharacterFromKeyPressMessage() {
+    ArduinoKeyBridgeLogger::getInstance().debug("MinimalKeyboard", "Starting sendCharacterFromKeyPressMessage");
+
+    // Check if message is empty or cancel flag is set
+    if (KEY_PRESS_MESSAGE == nullptr || KEY_PRESS_MESSAGE[0] == '\0' || KEY_PRESS_CANCEL) {
+        ArduinoKeyBridgeLogger::getInstance().debug("MinimalKeyboard", "Message empty or cancelled - exiting key press mode");
+        KEY_PRESS_MESSAGE = nullptr;
+        KEY_PRESS = false;
+        KEY_PRESS_MODE = false;
+        return;
+    }
+
+    // Get first character from message
+    char c = KEY_PRESS_MESSAGE[0];
+    KeyInfo foundCode;
+    bool uppercase = false;
+
+    ArduinoKeyBridgeLogger::getInstance().debug("MinimalKeyboard", String("Processing character: ") + String(c));
+
+    // Search unified key map to find HID code matching this ASCII character
+    for (size_t j = 0; j < unifiedKeyMapSize; j++) {
+        KeyInfo k;
+        memcpy_P(&k, &unifiedKeyMap[j], sizeof(KeyInfo));
+        if (k.asciiValue == c) {
+            foundCode = k;
+            ArduinoKeyBridgeLogger::getInstance().debug("MinimalKeyboard", String("Found HID code: 0x") + String(foundCode.hexCode, HEX));
+            break;
+        }
+    }
+
+    // Simulate key press and release to output the character
+    KeyReport keyReport = {0, 0, {0, 0, 0, 0, 0, 0}};
+
+    if (!foundCode.shifted) {
+        keyReport.keys[0] = foundCode.hexCode;
+    } else {
+        // Shifted key
+        keyReport.modifiers = 0x02; // Left Shift
+        keyReport.keys[0] = foundCode.hexCode;
+    }
+
+    sendReport(&keyReport);
+
+    KeyReport release = {0, 0, {0, 0, 0, 0, 0, 0}};
+    sendReport(&release);
+
+    ArduinoKeyBridgeLogger::getInstance().debug("MinimalKeyboard", "Key press/release simulated");
+    
+    // Log full HID report
+    ArduinoKeyBridgeLogger::getInstance().debug("MinimalKeyboard", String("HID report: ") + String(keyReport.keys[0], HEX) + String(" ") + String(keyReport.keys[1], HEX) + String(" ") + String(keyReport.keys[2], HEX) + String(" ") + String(keyReport.keys[3], HEX) + String(" ") + String(keyReport.keys[4], HEX) + String(" ") + String(keyReport.keys[5], HEX));
+
+    // Remove first character from message
+    KEY_PRESS_MESSAGE = &KEY_PRESS_MESSAGE[1];
+    KEY_PRESS = false;
+
+    ArduinoKeyBridgeLogger::getInstance().debug("MinimalKeyboard", "Character processed and removed from message");
 }
