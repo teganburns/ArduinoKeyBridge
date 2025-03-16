@@ -18,6 +18,20 @@
  * - send - send screenshots and message to ChatGPT
  * - set - designate custom message to send the server
  *
+ * Quick Capture
+ * -------------- 
+ * F13 (0x68) - Capture a screenshot and send it to the server
+ * [IMPLEMENTED - See handleF13() which calls handleCaptureCommand()]
+ * 
+ * Quick Send
+ * --------------
+ * F14 (0x69) - Send a message to ChatGPT
+ * [IMPLEMENTED - See handleF14() which calls handleSendCommand()]
+ * 
+ * Quick Message
+ * --------------
+ * F15 (0x6A) - Set the message to be sent along with screenshots
+ * 
  * Key Press Mode Notes
  * -------------------
  * Activated by pressing F17
@@ -98,22 +112,27 @@ void CustomKeyboardCommands::handleKeyPress(uint8_t keycode) {
   }
 
   if (MinimalKeyboard::getInstance().KEY_PRESS_MODE) {
-    MinimalKeyboard::getInstance().sendCharacterFromKeyPressMessage();
-    ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", String("CURRENT BUFFER: ") + String(MinimalKeyboard::getInstance().KEY_PRESS_MESSAGE));
+    MinimalKeyboard::getInstance().sendCharacterFromKeyReportMessage();
+    // This is annoying...
+    // ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", String("CURRENT BUFFER: ") + String(MinimalKeyboard::getInstance().KEY_PRESS_MESSAGE));
   } 
 
   ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "end of handleKeyPress()");
 }
 
 void CustomKeyboardCommands::handleF13() {
+  handleCaptureCommand();
   ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "F13 pressed.");
 }
 
 void CustomKeyboardCommands::handleF14() {
+  handleSendCommand();
   ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "F14 pressed.");
 }
 
 void CustomKeyboardCommands::handleF15() {
+  // TODO: Implement message dump functionality similar to F17 handler but without stealth mode
+  // Should use MinimalKeyboard::getInstance().setKeyPressMessage() to output the current message directly
   ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "F15 pressed.");
 }
 
@@ -148,7 +167,7 @@ void CustomKeyboardCommands::handleF17() {
     // Set KEY_PRESS_MESSAGE. This is temporary.
     //MinimalKeyboard::getInstance().setKeyPressMessage("Hello World! This is a test message.");
 
-    MinimalKeyboard::getInstance().setKeyPressMessage("```python\nprint("H   H")\nprint("H   H")\nprint("HHHHH")\nprint("H   H")\nprint("H   H")\n```");
+    MinimalKeyboard::getInstance().setKeyPressMessage("```python\nprint(\"H   H\")\nprint(\"H   H\")\nprint(\"HHHHH\")\nprint(\"H   H\")\nprint(\"H   H\")\n```");
 
     // Set KEY_PRESS to true. TODO: I don't think this is needed.
     MinimalKeyboard::getInstance().KEY_PRESS = true;
@@ -278,27 +297,66 @@ void CustomKeyboardCommands::handleCaptureCommand() {
 
   if (!responseDoc.isNull() && responseDoc.containsKey("message")) {
     ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", String("Message: ") + responseDoc["message"].as<const char*>());
+    MinimalKeyboard::getInstance().sendTimedMessage("Success", 200);
   } else {
     ArduinoKeyBridgeLogger::getInstance().error("CustomKeyboardCommands", "Message field not found in response.");
+    MinimalKeyboard::getInstance().sendTimedMessage("Error", 200);
   }
 }
 
 void CustomKeyboardCommands::handleSendCommand() {
+  // Log that we're starting the send command process
   ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "Executing send command...");
   const char* resourcePath = "/send_request";
 
-  JsonDocument requestDoc;
-  requestDoc[""] = "";
+  MinimalKeyboard::getInstance().sendTimedMessage("send_request", 200);
 
+  // Prepare the request JSON document with the specific message
+  JsonDocument requestDoc;
+  requestDoc["message"] = "You are taking a Java test. The question is split into mutiple images so be sure to review each image. Only respond with the code or the answer (if it's a multiple choice question).";
+
+  // Make the POST request to the server and get the response
+  // The postRequest method handles all the HTTP communication
   JsonDocument responseDoc = WiFiConnection::getInstance().postRequest(serverAddress, serverPort, resourcePath, requestDoc);
 
-  if (!responseDoc.isNull() && responseDoc.containsKey("message")) {
-    ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", String("Message: ") + responseDoc["message"].as<const char*>());
+  // Check if we received any response at all
+  // A null response could indicate network issues or server problems
+  if (responseDoc.isNull()) {
+    ArduinoKeyBridgeLogger::getInstance().error("CustomKeyboardCommands", "No response received");
+    MinimalKeyboard::getInstance().sendTimedMessage("Error", 200);
+    return;
   } else {
-    ArduinoKeyBridgeLogger::getInstance().error("CustomKeyboardCommands", "Message field not found in response.");
+    MinimalKeyboard::getInstance().sendTimedMessage("Success", 200);
+  }
+
+  // Navigate through the expected JSON structure:
+  // {
+  //   "choices": [{
+  //     "message": {
+  //       "content": "actual content here"
+  //     }
+  //   }]
+  // }
+  if (responseDoc.containsKey("choices") && 
+      responseDoc["choices"][0].containsKey("message") && 
+      responseDoc["choices"][0]["message"].containsKey("content")) {
+    
+    // Extract the content from the nested JSON structure
+    const char* content = responseDoc["choices"][0]["message"]["content"].as<const char*>();
+    ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", String("Received content: ") + content);
+    
+    // Store the content in MinimalKeyboard instance
+    // This content won't be processed until F17 is pressed
+    // When F17 is pressed, the content will be converted into key reports
+    MinimalKeyboard::getInstance().setKeyPressMessage(content);
+  } else {
+    // Log an error if the JSON structure doesn't match what we expect
+    ArduinoKeyBridgeLogger::getInstance().error("CustomKeyboardCommands", "Expected JSON structure not found in response");
   }
 }
 
 void CustomKeyboardCommands::handleSetCommand() {
   ArduinoKeyBridgeLogger::getInstance().debug("CustomKeyboardCommands", "Executing Set command...");
 }
+
+

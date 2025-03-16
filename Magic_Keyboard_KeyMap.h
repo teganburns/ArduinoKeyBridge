@@ -56,6 +56,10 @@ const KeyInfo unifiedKeyMap[] PROGMEM = {
     {0x24, '&', "Ampersand", true}, {0x25, '*', "Asterisk", true}, {0x26, '(', "Left Parenthesis", true},
     {0x27, ')', "Right Parenthesis", true},
 
+    // Add quote characters
+    {0x34, '\'', "Single Quote", false},  // Single quote/apostrophe
+    {0x34, '"', "Double Quote", true},     // Double quote (shifted single quote)
+
     // Navigation Keys
     {0x2C, ' ', "Space", false}, {0x28, '\n', "Enter", false}, {0x29, 27, "Escape", false},
     {0x2A, 8, "Backspace", false}, {0x2B, '\t', "Tab", false}, {0x4C, -1, "Delete", false},

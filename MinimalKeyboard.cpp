@@ -133,7 +133,7 @@ void MinimalKeyboard::sendTimedMessage(String message, int time) {
     // Delete message
     for (uint8_t i = 0; i < message.length(); i++) {
         KeyReport pressBackspace{};
-        pressBackspace.keys[0] = 0x02; // Left Shift
+        pressBackspace.keys[0] = 0x2A; // Backspace
         sendReport(&pressBackspace);
 
         KeyReport release = {};
@@ -141,30 +141,93 @@ void MinimalKeyboard::sendTimedMessage(String message, int time) {
     }
 }
 
-
-void MinimalKeyboard::setKeyPressMessage(String message) {
-    KEY_PRESS_MESSAGE = strdup(message.c_str());
-    ArduinoKeyBridgeLogger::getInstance().debug("MinimalKeyboard", String("Key press message set to: ") + String(KEY_PRESS_MESSAGE));
-}
-
-void MinimalKeyboard::sendCharacterFromKeyPressMessage() {
-    ArduinoKeyBridgeLogger::getInstance().debug("MinimalKeyboard", "Starting sendCharacterFromKeyPressMessage");
-
-    // Check if message is empty or cancel flag is set
-    if (KEY_PRESS_MESSAGE == nullptr || KEY_PRESS_MESSAGE[0] == '\0' || KEY_PRESS_CANCEL) {
-        ArduinoKeyBridgeLogger::getInstance().debug("MinimalKeyboard", "Message empty or cancelled - exiting key press mode");
-        KEY_PRESS_MESSAGE = nullptr;
-        KEY_PRESS = false;
-        KEY_PRESS_MODE = false;
+void MinimalKeyboard::convertMessageToKeyReports() {
+    KEY_PRESS_MESSAGE_AS_KEY_REPORTS.clear();
+    
+    if (KEY_PRESS_MESSAGE == nullptr || KEY_PRESS_MESSAGE[0] == '\0') {
+        ArduinoKeyBridgeLogger::getInstance().debug("MinimalKeyboard", "No message to convert");
         return;
     }
 
-    // Get first character from message
-    char c = KEY_PRESS_MESSAGE[0];
-    KeyInfo foundCode;
-    bool uppercase = false;
+    const char* currentChar = KEY_PRESS_MESSAGE;
+    while (*currentChar != '\0') {
+        if (*currentChar == '\\' && *(currentChar + 1) != '\0') {
+            // Handle escape sequence
+            char nextChar = *(currentChar + 1);
+            KeyReport keyReport = {0, 0, {0, 0, 0, 0, 0, 0}};
+            
+            switch (nextChar) {
+                case 'n':  // Newline
+                    keyReport.keys[0] = 0x28;  // Enter key
+                    KEY_PRESS_MESSAGE_AS_KEY_REPORTS.push_back(keyReport);
+                    break;
+                case 't':  // Tab
+                    keyReport.keys[0] = 0x2B;  // Tab key
+                    KEY_PRESS_MESSAGE_AS_KEY_REPORTS.push_back(keyReport);
+                    break;
+                case '\\': // Literal backslash
+                    keyReport = convertCharToKeyReport('\\');
+                    KEY_PRESS_MESSAGE_AS_KEY_REPORTS.push_back(keyReport);
+                    break;
+                case '"':  // Double quote
+                    keyReport = convertCharToKeyReport('"');
+                    KEY_PRESS_MESSAGE_AS_KEY_REPORTS.push_back(keyReport);
+                    break;
+                default:
+                    ArduinoKeyBridgeLogger::getInstance().error("MinimalKeyboard", 
+                        "Unknown escape sequence: \\" + String(nextChar));
+                    break;
+            }
+            currentChar += 2;  // Skip both the backslash and the escape character
+        } else {
+            // Normal character
+            KeyReport keyReport = convertCharToKeyReport(*currentChar);
+            KEY_PRESS_MESSAGE_AS_KEY_REPORTS.push_back(keyReport);
+            currentChar++;
+        }
+    }
+    
+    ArduinoKeyBridgeLogger::getInstance().debug("MinimalKeyboard", 
+        String("Converted message to ") + String(KEY_PRESS_MESSAGE_AS_KEY_REPORTS.size()) + String(" key reports"));
+}
 
-    ArduinoKeyBridgeLogger::getInstance().debug("MinimalKeyboard", String("Processing character: ") + String(c));
+void MinimalKeyboard::setKeyPressMessage(String message) {
+    KEY_PRESS_MESSAGE = strdup(message.c_str());
+    convertMessageToKeyReports();
+    ArduinoKeyBridgeLogger::getInstance().debug("MinimalKeyboard", 
+        String("Key press message set to: ") + String(KEY_PRESS_MESSAGE));
+}
+
+KeyReport MinimalKeyboard::convertCharToKeyReport(char c) {
+    KeyInfo foundCode;
+    KeyReport keyReport = {0, 0, {0, 0, 0, 0, 0, 0}};
+
+    // Handle escape sequences
+    if (c == '\\') {
+        // Get next character from message
+        if (KEY_PRESS_MESSAGE != nullptr && KEY_PRESS_MESSAGE[1] != '\0') {
+            char nextChar = KEY_PRESS_MESSAGE[1];
+            // Remove the extra character from the message since we're processing it now
+            KEY_PRESS_MESSAGE = &KEY_PRESS_MESSAGE[1];
+            
+            // Handle special escape sequences
+            switch (nextChar) {
+                case 'n':  // Newline
+                    keyReport.keys[0] = 0x28;  // Enter key
+                    return keyReport;
+                case 't':  // Tab
+                    keyReport.keys[0] = 0x2B;  // Tab key
+                    return keyReport;
+                case '\\': // Literal backslash
+                    c = '\\';
+                    break;
+                // Add more escape sequences as needed
+                default:
+                    ArduinoKeyBridgeLogger::getInstance().debug("MinimalKeyboard", "Unknown escape sequence: \\" + String(nextChar));
+                    return keyReport;
+            }
+        }
+    }
 
     // Search unified key map to find HID code matching this ASCII character
     for (size_t j = 0; j < unifiedKeyMapSize; j++) {
@@ -177,9 +240,6 @@ void MinimalKeyboard::sendCharacterFromKeyPressMessage() {
         }
     }
 
-    // Simulate key press and release to output the character
-    KeyReport keyReport = {0, 0, {0, 0, 0, 0, 0, 0}};
-
     if (!foundCode.shifted) {
         keyReport.keys[0] = foundCode.hexCode;
     } else {
@@ -188,19 +248,37 @@ void MinimalKeyboard::sendCharacterFromKeyPressMessage() {
         keyReport.keys[0] = foundCode.hexCode;
     }
 
+    return keyReport;
+}
+
+void MinimalKeyboard::sendCharacterFromKeyReportMessage() {
+    ArduinoKeyBridgeLogger::getInstance().debug("MinimalKeyboard", "Starting sendCharacterFromKeyReportMessage");
+
+    // Check if we have any reports left or if cancel flag is set
+    if (KEY_PRESS_MESSAGE_AS_KEY_REPORTS.empty() || KEY_PRESS_CANCEL) {
+        ArduinoKeyBridgeLogger::getInstance().debug("MinimalKeyboard", "No more reports or cancelled - exiting key press mode");
+        KEY_PRESS_MESSAGE = nullptr;
+        KEY_PRESS = false;
+        KEY_PRESS_MODE = false;
+        return;
+    }
+
+    // Send the press report
+    KeyReport keyReport = KEY_PRESS_MESSAGE_AS_KEY_REPORTS.front();
+    KEY_PRESS_MESSAGE_AS_KEY_REPORTS.erase(KEY_PRESS_MESSAGE_AS_KEY_REPORTS.begin());
     sendReport(&keyReport);
 
+    // Send the release report
     KeyReport release = {0, 0, {0, 0, 0, 0, 0, 0}};
     sendReport(&release);
 
-    ArduinoKeyBridgeLogger::getInstance().debug("MinimalKeyboard", "Key press/release simulated");
-    
-    // Log full HID report
-    ArduinoKeyBridgeLogger::getInstance().debug("MinimalKeyboard", String("HID report: ") + String(keyReport.keys[0], HEX) + String(" ") + String(keyReport.keys[1], HEX) + String(" ") + String(keyReport.keys[2], HEX) + String(" ") + String(keyReport.keys[3], HEX) + String(" ") + String(keyReport.keys[4], HEX) + String(" ") + String(keyReport.keys[5], HEX));
+    // Log HID report
+    ArduinoKeyBridgeLogger::getInstance().debug("MinimalKeyboard", 
+        String("HID report: ") + String(keyReport.keys[0], HEX) + String(" ") + 
+        String(keyReport.keys[1], HEX) + String(" ") + String(keyReport.keys[2], HEX) + 
+        String(" ") + String(keyReport.keys[3], HEX) + String(" ") + 
+        String(keyReport.keys[4], HEX) + String(" ") + String(keyReport.keys[5], HEX));
 
-    // Remove first character from message
-    KEY_PRESS_MESSAGE = &KEY_PRESS_MESSAGE[1];
     KEY_PRESS = false;
-
-    ArduinoKeyBridgeLogger::getInstance().debug("MinimalKeyboard", "Character processed and removed from message");
+    ArduinoKeyBridgeLogger::getInstance().debug("MinimalKeyboard", "Press and release reports sent");
 }
