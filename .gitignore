@@ -1,0 +1,35 @@
+# PlatformIO
+.pio/
+.pioenvs/
+.piolibdeps/
+.piolib/
+.pio/libdeps/
+.pio/build/
+.pio/.pio/
+.pio/.pioenvs/
+.pio/.piolibdeps/
+.pio/.piolib/
+.pio/.pio/libdeps/
+.pio/.pio/build/
+.vscode/
+
+# Build files
+build/
+
+# Compiled binaries
+*.bin
+*.elf
+*.hex
+
+# Arduino temp files
+.DS_Store
+*~
+*.swp
+*.orig
+
+# OS specific
+.DS_Store
+Thumbs.db
+
+# Debug files
+*.log
