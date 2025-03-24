@@ -49,6 +49,9 @@ public:
                        const NeoPixelColor& pixel4, const NeoPixelColor& pixel5,
                        const NeoPixelColor& pixel6, const NeoPixelColor& pixel7);
 
+    // Roll a color through all pixels
+    void rollColor(uint32_t color, int delayMs);
+
 private:
     ArduinoKeyBridgeNeoPixel() = default;
     ~ArduinoKeyBridgeNeoPixel() = default;

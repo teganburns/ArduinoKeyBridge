@@ -8,6 +8,16 @@ WiFiConnection& WiFiConnection::getInstance() {
   return instance;
 }
 
+////////////////////////
+// SHARED OPERATIONS //
+////////////////////////
+
+
+
+////////////////////////
+// CLIENT OPERATIONS //
+////////////////////////
+
 void WiFiConnection::connect(const char* ssid_, const char* password_, uint16_t port_) {
   ssid = ssid_;
   password = password_;
@@ -33,6 +43,158 @@ void WiFiConnection::connect(const char* ssid_, const char* password_, uint16_t 
   // Log memory usage
   ArduinoKeyBridgeLogger::getInstance().logMemory("WiFi");
 }
+
+
+
+
+
+
+void WiFiConnection::printStatus() {
+  ArduinoKeyBridgeLogger::getInstance().info("WiFi", String("SSID: ") + WiFi.SSID());
+  ArduinoKeyBridgeLogger::getInstance().info("WiFi", String("IP Address: ") + WiFi.localIP().toString());
+  ArduinoKeyBridgeLogger::getInstance().info("WiFi", String("RSSI: ") + WiFi.RSSI());
+}
+
+JsonDocument WiFiConnection::postRequest(const char* serverAddress, int serverPort, const char* resourcePath, const JsonDocument& requestDoc) {
+
+  ArduinoKeyBridgeLogger::getInstance().debug("WiFi", "--------------START------------------");
+  // variables
+  WiFiClient client;
+  JsonDocument responseDoc;
+  String postData;
+
+  unsigned long startTime = millis();
+  const size_t bufferSize = 1024;
+  char buffer[bufferSize];
+  size_t position = 0;
+
+  serializeJson(requestDoc, postData);
+  String request = String("POST ") + resourcePath + " HTTP/1.1\r\n" +
+                  "Host: " + serverAddress + "\r\n" +
+                  "Content-Type: application/json\r\n" +
+                  "Content-Length: " + postData.length() + "\r\n" +
+                  "Connection: close\r\n\r\n" +
+                  postData;
+
+
+
+  ArduinoKeyBridgeLogger::getInstance().info("WiFi", String("Connecting to server: ") + serverAddress);
+  ArduinoKeyBridgeNeoPixel::getInstance().setStatusBusy();
+
+  if (!client.connect(serverAddress, serverPort)) {
+    ArduinoKeyBridgeLogger::getInstance().error("WiFi", "Failed to connect to server!");
+    ArduinoKeyBridgeNeoPixel::getInstance().setStatusError();
+    return responseDoc;
+  } else {
+    ArduinoKeyBridgeLogger::getInstance().info("WiFi", "Connected to server!");
+  }
+
+  client.println(request);
+
+
+  ArduinoKeyBridgeLogger::getInstance().debug("WiFi", "--------------------------------");
+  ArduinoKeyBridgeLogger::getInstance().debug("WiFi", "Starting to read response...");
+
+  // Wait for initial data with timeout
+  unsigned long dataTimeout = millis();
+  while (client.available() == 0) {
+    if (millis() - dataTimeout > 5000) { // 5 second timeout
+      ArduinoKeyBridgeLogger::getInstance().error("WiFi", "No initial data received after 5 seconds");
+      client.stop();
+      return responseDoc;
+    }
+    delay(100);
+  }
+
+  // Now we have data, keep reading until we're done
+  bool foundEndOfBody = false;
+  unsigned long lastDataTime = millis();
+  bool headersFound = false;
+  size_t contentLength = 0;
+
+  while (client.connected() || client.available() > 0) {
+    if (client.available()) {
+      lastDataTime = millis(); // Reset timeout when we get data
+      size_t bytesRead = client.read((uint8_t*)&buffer[position], bufferSize - position);
+      position += bytesRead;
+
+      // Look for headers if we haven't found them yet
+      if (!headersFound && position >= 4) {
+        for (size_t i = 0; i < position - 3; i++) {
+          if (buffer[i] == '\r' && buffer[i+1] == '\n' && 
+              buffer[i+2] == '\r' && buffer[i+3] == '\n') {
+            headersFound = true;
+            // Extract content length if present
+            String headers = String(buffer, i);
+            int clIndex = headers.indexOf("Content-Length: ");
+            if (clIndex != -1) {
+              contentLength = headers.substring(clIndex + 16).toInt();
+            }
+            // Move remaining data to start of buffer
+            memmove(buffer, buffer + i + 4, position - (i + 4));
+            position -= (i + 4);
+            break;
+          }
+        }
+      }
+
+      // Check if we've reached the end of the body
+      if (headersFound) {
+        if (contentLength > 0 && position >= contentLength) {
+          foundEndOfBody = true;
+          break;
+        }
+      } else {
+        // If no headers found, look for double newline in raw data
+        for (size_t i = 0; i < position - 3; i++) {
+          if (buffer[i] == '\r' && buffer[i+1] == '\n' && 
+              buffer[i+2] == '\r' && buffer[i+3] == '\n') {
+            foundEndOfBody = true;
+            break;
+          }
+        }
+      }
+      
+      // If buffer is full, log it and reset
+      if (position >= bufferSize - 1) {
+        buffer[position] = '\0';
+        ArduinoKeyBridgeLogger::getInstance().debug("WiFi", "Buffer chunk:");
+        ArduinoKeyBridgeLogger::getInstance().debug("WiFi", buffer);
+        position = 0;
+      }
+    } else {
+      // Check if we've waited too long for more data
+      if (millis() - lastDataTime > 5000) {
+        ArduinoKeyBridgeLogger::getInstance().debug("WiFi", "No new data for 5 seconds, assuming response is complete");
+        break;
+      }
+      delay(50);
+    }
+  }
+  
+  // Log any remaining data
+  if (position > 0) {
+    buffer[position] = '\0';
+    ArduinoKeyBridgeLogger::getInstance().debug("WiFi", "Final buffer chunk:");
+    ArduinoKeyBridgeLogger::getInstance().debug("WiFi", buffer);
+  }
+
+  unsigned long endTime = millis();
+  ArduinoKeyBridgeLogger::getInstance().debug("WiFi", String("Response time: ") + String(endTime - startTime) + "ms");
+  ArduinoKeyBridgeLogger::getInstance().debug("WiFi", "-----------END OF RESPONSE-----------");
+
+  delay(1000); // long delay so I can read logs
+
+  client.stop();
+
+  return responseDoc;
+}
+
+
+
+////////////////////////
+// SERVER OPERATIONS //
+////////////////////////
 
 void WiFiConnection::startServer() {
   server.begin();
@@ -129,80 +291,4 @@ void WiFiConnection::respondWithJson(WiFiClient& client, int statusCode, const S
   client.println("Connection: close");
   client.println();
   client.println(message);
-}
-
-void WiFiConnection::printStatus() {
-  ArduinoKeyBridgeLogger::getInstance().info("WiFi", String("SSID: ") + WiFi.SSID());
-  ArduinoKeyBridgeLogger::getInstance().info("WiFi", String("IP Address: ") + WiFi.localIP().toString());
-  ArduinoKeyBridgeLogger::getInstance().info("WiFi", String("RSSI: ") + WiFi.RSSI());
-}
-
-JsonDocument WiFiConnection::postRequest(const char* serverAddress, int serverPort, const char* resourcePath, const JsonDocument& requestDoc) {
-  WiFiClient client;
-  JsonDocument responseDoc;
-
-  ArduinoKeyBridgeLogger::getInstance().info("WiFi", String("Connecting to server: ") + serverAddress);
-  ArduinoKeyBridgeNeoPixel::getInstance().setStatusBusy();
-
-  if (!client.connect(serverAddress, serverPort)) {
-    ArduinoKeyBridgeLogger::getInstance().error("WiFi", "Connection failed!");
-    ArduinoKeyBridgeNeoPixel::getInstance().setStatusError();
-    return responseDoc;
-  }
-
-  String postData;
-  serializeJson(requestDoc, postData);
-
-  client.print("POST ");
-  client.print(resourcePath);
-  client.println(" HTTP/1.1");
-  client.print("Host: ");
-  client.println(serverAddress);
-  client.println("Content-Type: application/json");
-  client.print("Content-Length: ");
-  client.println(postData.length());
-  client.println("Connection: close");
-  client.println();
-  client.println(postData);
-
-  unsigned long timeout = millis();
-  while (client.available() == 0) {
-    if (millis() - timeout > 30000) { // 30 seconds
-      ArduinoKeyBridgeLogger::getInstance().error("WiFi", "Server response timeout. Currently set to 10 seconds.");
-      client.stop();
-      ArduinoKeyBridgeNeoPixel::getInstance().setStatusError();
-      return responseDoc;
-    }
-  }
-
-  String response = "";
-  // start timer
-  unsigned long startTime = millis();
-  while (client.available()) {
-    response += client.readString(); // TODO: this takes too long
-  }
-  unsigned long endTime = millis();
-  ArduinoKeyBridgeLogger::getInstance().debug("WiFi", String("Response time: ") + String(endTime - startTime) + "ms");
-  client.stop();
-
-  ArduinoKeyBridgeLogger::getInstance().info("WiFi", "Response:");
-  ArduinoKeyBridgeLogger::getInstance().debug("WiFi", response);
-
-  int bodyStartIndex = response.indexOf("\r\n\r\n") + 4;
-  String responseBody = response.substring(bodyStartIndex);
-
-  DeserializationError error = deserializeJson(responseDoc, responseBody);
-  if (error) {
-    ArduinoKeyBridgeLogger::getInstance().error("WiFi", String("JSON Parsing failed: ") + error.c_str());
-    responseDoc.clear();
-    ArduinoKeyBridgeNeoPixel::getInstance().setStatusError();
-  }
-  ArduinoKeyBridgeNeoPixel::getInstance().setStatusSuccess();
-  delay(1000);
-  ArduinoKeyBridgeNeoPixel::getInstance().setStatusIdle();
-
-  // Log memory usage
-  ArduinoKeyBridgeLogger::getInstance().logMemory("WiFi");
-
-  return responseDoc;
 }

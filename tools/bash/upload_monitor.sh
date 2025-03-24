@@ -2,8 +2,8 @@
 
 # Get the absolute path to the script's directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-# Get the project root directory (two levels up from the script)
-PROJECT_ROOT="$( cd "$SCRIPT_DIR/../.." && pwd )"
+# Get the ArduinoKeyBridge directory (three levels up from the script, then into ArduinoKeyBridge)
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/../../ArduinoKeyBridge" && pwd )"
 
 # Important: We use /tmp/arduino_build to avoid potential permission/caching issues
 # that can occur with local build directories. This ensures a clean build every time.

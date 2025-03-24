@@ -21,7 +21,7 @@ CustomKeyboardParser Parser(MinimalKeyboard::getInstance());
 void setup() {
     // Initialize logger first
     ArduinoKeyBridgeLogger::getInstance().begin(115200);
-    ArduinoKeyBridgeLogger::getInstance().setLogLevel(LogLevel::DEBUG);
+    ArduinoKeyBridgeLogger::getInstance().setLogLevel(LogLevel::NONE); // IDK IF THIS EVEN WORKS 
     ArduinoKeyBridgeLogger::getInstance().info("Setup", "Starting ArduinoKeyBridge...");
     
     // Run memory test OPTIONAL
@@ -30,42 +30,14 @@ void setup() {
     // Run jsonDocumentTest() OPTIONAL
     //ArduinoKeyBridgeLogger::getInstance().jsonDocumentTest();
 
-    // 1000 logs test
-    for (int j = 0; j < 1000; j++) {
-        // show memory  
-        ArduinoKeyBridgeLogger::getInstance().info("Setup", String("Logging test " + String(j)).c_str());
-        ArduinoKeyBridgeLogger::getInstance().logMemory("Setup");
-        delay(2000);
-
-        for (int i = 0; i < 10; i++) {
-            // Dummy log to test memory usage
-            ArduinoKeyBridgeLogger::getInstance().debug("Setup", String("Logging test " + String(i)).c_str());
-            // Log different types of messages to test logger functionality
-            ArduinoKeyBridgeLogger::getInstance().warning("Setup", "This is a warning message");
-            ArduinoKeyBridgeLogger::getInstance().error("Setup", "This is an error message");
-            ArduinoKeyBridgeLogger::getInstance().mem("Setup", "Memory status check");
-            
-            // Log some test data as hex dump
-            uint8_t testData[] = {0x48, 0x65, 0x6C, 0x6C, 0x6F}; // "Hello" in hex
-            ArduinoKeyBridgeLogger::getInstance().hexDump("Setup", testData, sizeof(testData));
-            
-            // Log memory percentage
-            float memPct = ArduinoKeyBridgeLogger::getInstance().getMemoryPercentage();
-            ArduinoKeyBridgeLogger::getInstance().info("Setup", "Memory usage: " + String(memPct) + "%");
-
-            // JsonDocument test
-            ArduinoKeyBridgeLogger::getInstance().jsonDocumentTest();
-        }
-
-    }
 
     // Initialize other components
     ArduinoKeyBridgeLogger::getInstance().info("Setup", "Initializing components...");
     
     // Initialize NeoPixel
-    ArduinoKeyBridgeNeoPixel::getInstance().begin();
-    ArduinoKeyBridgeNeoPixel::getInstance().showSetupProgress(0.0f);  // Start with all red
+    ArduinoKeyBridgeNeoPixel::getInstance().begin(6, 8);
     ArduinoKeyBridgeNeoPixel::getInstance().setBrightness(5);
+    ArduinoKeyBridgeNeoPixel::getInstance().showSetupProgress(0.0f);  // Start with all red
 
     // Setup 25% complete
     ArduinoKeyBridgeNeoPixel::getInstance().showSetupProgress(0.25f);  // 25% green
@@ -109,7 +81,20 @@ void setup() {
     ArduinoKeyBridgeLogger::getInstance().logMemory("Setup");
 }
 
+
+
+static unsigned long lastLogTime = 0;
 void loop() {
+
+    // Rolls white
+    ArduinoKeyBridgeNeoPixel::getInstance().rollColor(NeoPixelColors::WHITE.r << 16 | NeoPixelColors::WHITE.g << 8 | NeoPixelColors::WHITE.b, 0);
+    
+    // Log Memory every 10 seconds
+    if (millis() - lastLogTime >= 10000) {
+        lastLogTime = millis();
+        ArduinoKeyBridgeLogger::getInstance().logMemory("Loop");
+    } 
+
     // Process USB tasks and handle incoming web clients
     Usb.Task();
     WiFiConnection::getInstance().handleClient();

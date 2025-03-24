@@ -7,14 +7,11 @@ ArduinoKeyBridgeNeoPixel& ArduinoKeyBridgeNeoPixel::getInstance() {
 
 void ArduinoKeyBridgeNeoPixel::begin(uint8_t pin, uint16_t numPixels) {
     if (!initialized) {
-        String initMsg = "Initializing on pin " + String(pin) + " with " + String(numPixels) + " pixels";
-        ArduinoKeyBridgeLogger::getInstance().debug("NeoPixel", initMsg.c_str());
         pixels = new Adafruit_NeoPixel(numPixels, pin, NEO_GRB + NEO_KHZ800);
         pixels->begin();
         pixels->setBrightness(20);  
         pixels->show();
         initialized = true;
-        ArduinoKeyBridgeLogger::getInstance().info("NeoPixel", "NeoPixel initialized successfully");
     } else {
         ArduinoKeyBridgeLogger::getInstance().warning("NeoPixel", "Attempt to initialize already initialized NeoPixel");
     }
@@ -25,8 +22,6 @@ void ArduinoKeyBridgeNeoPixel::setColor(uint8_t r, uint8_t g, uint8_t b) {
         ArduinoKeyBridgeLogger::getInstance().error("NeoPixel", "Attempt to set color before initialization");
         return;
     }
-    String colorMsg = "Setting color to RGB(" + String(r) + "," + String(g) + "," + String(b) + ")";
-    ArduinoKeyBridgeLogger::getInstance().debug("NeoPixel", colorMsg.c_str());
     for(int i = 0; i < pixels->numPixels(); i++) {
         pixels->setPixelColor(i, pixels->Color(r, g, b));
     }
@@ -43,10 +38,6 @@ void ArduinoKeyBridgeNeoPixel::setAlternatingColors(uint8_t r1, uint8_t g1, uint
     // Store the colors for animation
     color1 = Color(r1, g1, b1);
     color2 = Color(r2, g2, b2);
-    
-    String colorMsg = "Setting alternating colors RGB(" + String(r1) + "," + String(g1) + "," + String(b1) + 
-                     ") and RGB(" + String(r2) + "," + String(g2) + "," + String(b2) + ")";
-    ArduinoKeyBridgeLogger::getInstance().debug("NeoPixel", colorMsg.c_str());
     
     // Initial pattern
     currentPattern = false;
@@ -85,7 +76,6 @@ void ArduinoKeyBridgeNeoPixel::setBrightness(uint8_t brightness) {
         return;
     }
     String brightnessMsg = "Setting brightness to " + String(brightness);
-    ArduinoKeyBridgeLogger::getInstance().debug("NeoPixel", brightnessMsg.c_str());
     pixels->setBrightness(brightness);
     pixels->show();
 }
@@ -95,7 +85,6 @@ void ArduinoKeyBridgeNeoPixel::clear() {
         ArduinoKeyBridgeLogger::getInstance().error("NeoPixel", "Attempt to clear before initialization");
         return;
     }
-    ArduinoKeyBridgeLogger::getInstance().debug("NeoPixel", "Clearing all pixels");
     pixels->clear();
     pixels->show();
 }
@@ -109,17 +98,14 @@ void ArduinoKeyBridgeNeoPixel::show() {
 }
 
 void ArduinoKeyBridgeNeoPixel::setStatusIdle() {
-    ArduinoKeyBridgeLogger::getInstance().info("NeoPixel", "Setting status: IDLE");
     setColor(0, 0, 255);  // Solid bright blue
 }
 
 void ArduinoKeyBridgeNeoPixel::setStatusBusy() {
-    ArduinoKeyBridgeLogger::getInstance().info("NeoPixel", "Setting status: BUSY");
     setColor(255, 165, 0);  // Solid bright orange
 }
 
 void ArduinoKeyBridgeNeoPixel::setStatusError() {
-    ArduinoKeyBridgeLogger::getInstance().info("NeoPixel", "Setting status: ERROR");
     setColor(255, 0, 0);  // Solid bright red
 }
 
@@ -131,8 +117,6 @@ void ArduinoKeyBridgeNeoPixel::setPixelColors(const NeoPixelColor& pixel0, const
         ArduinoKeyBridgeLogger::getInstance().error("NeoPixel", "Attempt to set pixel colors before initialization");
         return;
     }
-
-    ArduinoKeyBridgeLogger::getInstance().debug("NeoPixel", "Setting individual pixel colors");
     
     // Array of pixel colors for easier iteration
     const NeoPixelColor* pixelColors[] = {
@@ -163,9 +147,6 @@ void ArduinoKeyBridgeNeoPixel::showSetupProgress(float progress) {
     // Clamp progress between 0 and 1
     progress = progress < 0.0f ? 0.0f : (progress > 1.0f ? 1.0f : progress);
     
-    String progressMsg = "Setup progress: " + String(progress * 100) + "%";
-    ArduinoKeyBridgeLogger::getInstance().debug("NeoPixel", progressMsg.c_str());
-
     // Calculate how many pixels should be blue
     int numPixels = pixels->numPixels() / 3; // 3 LEDs per pixel
     int bluePixels = round(progress * numPixels);
@@ -173,11 +154,11 @@ void ArduinoKeyBridgeNeoPixel::showSetupProgress(float progress) {
     // Set all pixels to red first
     for (int i = 0; i < numPixels; i++) {
         if (i < bluePixels) {
-            // Progress pixels are green
-            pixels->setPixelColor(i, pixels->Color(0, 255, 0));
+            // Progress pixels are white
+            pixels->setPixelColor(i, pixels->Color(255, 255, 255));
         } else {
-            // Remaining pixels are yellow
-            pixels->setPixelColor(i, pixels->Color(255, 255, 0));
+            // Remaining pixels are ded
+            pixels->setPixelColor(i, pixels->Color(0, 0, 0));
         }
     }
     
@@ -185,6 +166,32 @@ void ArduinoKeyBridgeNeoPixel::showSetupProgress(float progress) {
 }
 
 void ArduinoKeyBridgeNeoPixel::setStatusSuccess() {
-    ArduinoKeyBridgeLogger::getInstance().info("NeoPixel", "Setting status: SUCCESS");
     setColor(0, 255, 0);  // Solid bright green
 } 
+
+void ArduinoKeyBridgeNeoPixel::rollColor(uint32_t color, int delayMs) {
+    if (!initialized) {
+        ArduinoKeyBridgeLogger::getInstance().error("NeoPixel", "Attempt to roll color before initialization");
+        return;
+    }
+
+    // Roll from bottom to top
+    for(int i=0; i<pixels->numPixels(); i++) {
+        for(int j=0; j<pixels->numPixels(); j++) pixels->setPixelColor(j,0);
+        pixels->setPixelColor(i,color);
+        pixels->show();
+        delay(delayMs);
+    }
+
+    // Roll from top to bottom
+    for(int i=pixels->numPixels()-1; i>=0; i--) {
+        for(int j=0; j<pixels->numPixels(); j++) pixels->setPixelColor(j,0);
+        pixels->setPixelColor(i,color);
+        pixels->show();
+        delay(delayMs);
+    }
+
+    // Clear all pixels at end
+    for(int j=0; j<pixels->numPixels(); j++) pixels->setPixelColor(j,0);
+    pixels->show();
+}
