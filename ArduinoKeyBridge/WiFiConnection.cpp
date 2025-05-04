@@ -44,11 +44,6 @@ void WiFiConnection::connect(const char* ssid_, const char* password_, uint16_t 
   ArduinoKeyBridgeLogger::getInstance().logMemory("WiFi");
 }
 
-
-
-
-
-
 void WiFiConnection::printStatus() {
   ArduinoKeyBridgeLogger::getInstance().info("WiFi", String("SSID: ") + WiFi.SSID());
   ArduinoKeyBridgeLogger::getInstance().info("WiFi", String("IP Address: ") + WiFi.localIP().toString());
@@ -91,15 +86,14 @@ JsonDocument WiFiConnection::postRequest(const char* serverAddress, int serverPo
 
   client.println(request);
 
-
   ArduinoKeyBridgeLogger::getInstance().debug("WiFi", "--------------------------------");
   ArduinoKeyBridgeLogger::getInstance().debug("WiFi", "Starting to read response...");
 
   // Wait for initial data with timeout
   unsigned long dataTimeout = millis();
   while (client.available() == 0) {
-    if (millis() - dataTimeout > 5000) { // 5 second timeout
-      ArduinoKeyBridgeLogger::getInstance().error("WiFi", "No initial data received after 5 seconds");
+    if (millis() - dataTimeout > 15000) { // 15 second timeout
+      ArduinoKeyBridgeLogger::getInstance().error("WiFi", "No initial data received after 15 seconds");
       client.stop();
       return responseDoc;
     }
@@ -186,6 +180,12 @@ JsonDocument WiFiConnection::postRequest(const char* serverAddress, int serverPo
   delay(1000); // long delay so I can read logs
 
   client.stop();
+
+  DeserializationError error = deserializeJson(responseDoc, buffer);
+  if (error) {
+    ArduinoKeyBridgeLogger::getInstance().error("WiFi", String("Failed to parse JSON: ") + error.c_str());
+    return responseDoc; // Return empty doc on error
+  }
 
   return responseDoc;
 }

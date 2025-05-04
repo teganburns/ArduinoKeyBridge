@@ -1,6 +1,7 @@
 #ifndef JSON_HANDLER_H
 #define JSON_HANDLER_H
 
+#include <Arduino.h>
 #include <ArduinoJson.h>
 #include <queue>
 #include <string>

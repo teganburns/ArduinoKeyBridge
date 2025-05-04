@@ -1,9 +1,11 @@
 #ifndef MINIMAL_KEYBOARD_H
 #define MINIMAL_KEYBOARD_H
 
+#include <Arduino.h>
 #include <HID.h>
-#include "Magic_Keyboard_KeyMap.h"
 #include <vector>
+#include "Magic_Keyboard_KeyMap.h"
+#include "ArduinoKeyBridgeLogger.h"
 
 typedef struct {
   uint8_t modifiers;

@@ -2,8 +2,6 @@
 #include <Arduino.h>
 #include "WiFiConnection.h"
 #include "ArduinoKeyBridgeNeoPixel.h"
-#include "ArduinoKeyBridgeLogger.h"
-#include <ArduinoJson.h>
 #include "CustomKeyboardParser.h"
 
 // Wi-Fi credentials for network connection

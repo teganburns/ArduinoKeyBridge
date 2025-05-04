@@ -33,3 +33,6 @@ Thumbs.db
 
 # Debug files
 *.log
+
+# Testing dir/files
+ArduinoKeyBridgeTCP/

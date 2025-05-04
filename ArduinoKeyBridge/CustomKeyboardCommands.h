@@ -3,10 +3,12 @@
 
 #include <stdint.h>
 #include <Arduino.h>
+#include <ArduinoJson.h>
 #include "JsonHandler.h"
 #include "WiFiConnection.h"
 #include "MinimalKeyboard.h"
 #include "Magic_Keyboard_KeyMap.h"
+#include "ArduinoKeyBridgeLogger.h"
 
 #ifndef CUSTOM_KEYBOARD_COMMANDS_DEBUG
 #define CUSTOM_KEYBOARD_COMMANDS_DEBUG true

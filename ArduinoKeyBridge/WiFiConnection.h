@@ -5,12 +5,15 @@
 #define WIFI_CONNECTION_DEBUG true
 #endif
 
+#include <Arduino.h>
 #include <WiFiS3.h>
 #include <WiFiClient.h>
 #include <WiFiServer.h>
 #include <functional>
+#include <ArduinoJson.h>
 #include "JsonHandler.h"
 #include "ArduinoKeyBridgeLogger.h"
+#include "ArduinoKeyBridgeNeoPixel.h"
 
 class WiFiConnection {
 public:
