@@ -11,7 +11,7 @@ struct KeyInfo {
     bool shifted;           // Does they keycode need to be shifted?
 };
 
-const KeyInfo unifiedKeyMap[] PROGMEM = {
+const KeyInfo unifiedKeyMap[] = {
     // Alphanumeric Keys - Lowercase
     {0x04, 'a', "a", false}, {0x05, 'b', "b", false}, {0x06, 'c', "c", false}, {0x07, 'd', "d", false},
     {0x08, 'e', "e", false}, {0x09, 'f', "f", false}, {0x0A, 'g', "g", false}, {0x0B, 'h', "h", false},

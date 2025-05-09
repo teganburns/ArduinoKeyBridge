@@ -1,46 +1,45 @@
 #ifndef MINIMAL_KEYBOARD_H
 #define MINIMAL_KEYBOARD_H
 
-#include <Arduino.h>
+#include <hidboot.h>
 #include <HID.h>
-#include <vector>
-#include "Magic_Keyboard_KeyMap.h"
+#include "MagicKeyboardKeyMap.h"
 #include "ArduinoKeyBridgeLogger.h"
 
+// Key report structure
 typedef struct {
-  uint8_t modifiers;
-  uint8_t reserved;
-  uint8_t keys[6];
+    uint8_t modifiers;
+    uint8_t reserved;
+    uint8_t keys[6];
 } KeyReport;
 
 class MinimalKeyboard {
 public:
-  static MinimalKeyboard& getInstance();
-  void begin();
-  void sendReport(KeyReport* report);
-  void sendMediaReport(uint16_t usage);
-  void sendTimedMessage(String message, int time);
-  void sendCharacterFromKeyPressMessage();
+    static MinimalKeyboard& getInstance();
+    void begin();
+    void sendReport(KeyReport* report);
+    void onNewKeyReport(const uint8_t* buf, uint8_t len);
 
-  // Dumb functions to set and cancel key press message
-  void setKeyPressMessage(String message);
-  void cancelKeyPressMessage();
-
-  void sendCharacterFromKeyReportMessage();
-
-  bool KEY_PRESS = false;
-  bool KEY_PRESS_CANCEL = false;
-  bool KEY_PRESS_MODE = false;
-  char* KEY_PRESS_MESSAGE = nullptr;
-
-  void dumpMessage(String message); // Function to dump the given message
+    // Flag to indicate new report available
+    bool hasNewReport = false;
+    KeyReport currentReport;
 
 private:
-  MinimalKeyboard();  // Private constructor
-  static const uint8_t HID_REPORT_DESCRIPTOR[];
-  std::vector<KeyReport> KEY_PRESS_MESSAGE_AS_KEY_REPORTS;
-  void convertMessageToKeyReports();
-  KeyReport convertCharToKeyReport(char c);
+    MinimalKeyboard();  // Private constructor
+    static const uint8_t HID_REPORT_DESCRIPTOR[];
+    MinimalKeyboard(const MinimalKeyboard&) = delete;
+    MinimalKeyboard& operator=(const MinimalKeyboard&) = delete;
+};
+
+class MinimalKeyboardParser : public KeyboardReportParser {
+public:
+    MinimalKeyboardParser(MinimalKeyboard& keyboard) : keyboard_(keyboard) {}
+protected:
+    void Parse(USBHID* hid, bool is_rpt_id, uint8_t len, uint8_t* buf) override {
+        keyboard_.onNewKeyReport(buf, len);
+    }
+private:
+    MinimalKeyboard& keyboard_;
 };
 
 #endif

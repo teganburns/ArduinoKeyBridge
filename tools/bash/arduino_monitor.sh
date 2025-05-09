@@ -1,7 +1,8 @@
 #!/bin/bash
 
 # Configuration
-ARDUINO_PORT="/dev/cu.usbmodem3101"
+#ARDUINO_PORT="/dev/cu.usbmodem3101"
+ARDUINO_PORT="/dev/cu.usbmodem21201"
 BAUD_RATE="115200"
 LOG_FILE="arduino_connection.log"
 NOTIFIER="/opt/homebrew/bin/terminal-notifier"

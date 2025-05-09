@@ -33,6 +33,10 @@ Thumbs.db
 
 # Debug files
 *.log
+*.log.*
 
 # Testing dir/files
 ArduinoKeyBridgeTCP/
+
+# Ignore the old reference codebase
+OLD_ArduinoKeyBridge/

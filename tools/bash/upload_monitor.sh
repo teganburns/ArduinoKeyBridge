@@ -4,13 +4,15 @@
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 # Get the ArduinoKeyBridge directory (three levels up from the script, then into ArduinoKeyBridge)
 PROJECT_ROOT="$( cd "$SCRIPT_DIR/../../ArduinoKeyBridge" && pwd )"
+#PROJECT_ROOT="$( cd "$SCRIPT_DIR/../../ArduinoKeyBridgeTCP/arduino/ClientConnectionDemo" && pwd )" 
 
 # Important: We use /tmp/arduino_build to avoid potential permission/caching issues
 # that can occur with local build directories. This ensures a clean build every time.
 BUILD_PATH="/tmp/arduino_build"
 
 # Port 3101 is the normal running state port - we only upload on other ports
-NORMAL_PORT_PATTERN="3101"
+#NORMAL_PORT_PATTERN="3101"
+NORMAL_PORT_PATTERN="21201"
 FQBN="arduino:renesas_uno:unor4wifi"
 NOTIFIER="/opt/homebrew/bin/terminal-notifier"
 
