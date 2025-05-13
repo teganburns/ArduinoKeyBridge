@@ -123,10 +123,9 @@ def receive_data():
             if data:
                 if len(data) == 8:
                     print(f"\n--- Raw TCP Packet (8 bytes) ---")
-                    print(f"Bytes: {data}")
                     print(f"Hex:   {data.hex(' ')}")
-                    print(f"Length: {len(data)} bytes\n")
-                    send_key_report(data)  # Echo the packet back
+                    #send_key_report(data)  # Echo the packet back
+                    static_key_report_sender()
                 else:
                     print(f"Ignored packet of length {len(data)} bytes (expected 8 bytes).")
             else:
@@ -152,12 +151,15 @@ def send_key_report(key_report):
         log_error(f"Error sending data: {e}")
         connected = False
 
-def periodic_key_report_sender():
+def static_key_report_sender():
     global connected
     key_report = bytes([0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00])  # Example: 'a'
-    while connected:
+    if connected:
         send_key_report(key_report)
-        time.sleep(1)
+
+    key_report = bytes([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])  # Example: clear
+    if connected:
+        send_key_report(key_report)
 
 def main():
     global connected

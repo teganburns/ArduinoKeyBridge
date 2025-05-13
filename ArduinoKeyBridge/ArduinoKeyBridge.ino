@@ -14,7 +14,7 @@ MinimalKeyboardParser parser(keyboard);
 
 // Timer for test key report
 static unsigned long lastTestKeyTime = 0;
-static constexpr unsigned long TEST_KEY_INTERVAL = 5000; // 5 seconds
+static constexpr unsigned long TEST_KEY_INTERVAL = 20000; // 20 seconds
 
 void setup() {
     // Initialize logger first
@@ -74,20 +74,22 @@ void loop() {
 
     // Process USB tasks
     Usb.Task();
+
+    // Check for TCP connection client/new message
     TCPConnection::getInstance().poll();
 
     // Check for new key report and send to TCP connection
     if (keyboard.hasNewReport) {
         ArduinoKeyBridgeLogger::getInstance().debug("Loop", "Sending key report to TCP connection");
         TCPConnection::getInstance().sendKeyReport(keyboard.currentReport);
+        keyboard.sendReport(&keyboard.currentReport);
         keyboard.hasNewReport = false;
     }
 
     // Report the status of the TCP connection every 5 seconds
     if (millis() - lastTestKeyTime >= TEST_KEY_INTERVAL) {
         lastTestKeyTime = millis();
-        TCPConnection::getInstance().status();
-        TCPConnection::getInstance().clientStatus();
+        
     }
 }
 

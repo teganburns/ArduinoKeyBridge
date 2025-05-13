@@ -2,8 +2,16 @@
 
 # Get the absolute path to the script's directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-# Get the ArduinoKeyBridge directory (three levels up from the script, then into ArduinoKeyBridge)
-PROJECT_ROOT="$( cd "$SCRIPT_DIR/../../ArduinoKeyBridge" && pwd )"
+
+# Check if Bluetooth mode is requested
+if [ "$1" = "bt" ] || [ "$1" = "bluetooth" ]; then
+    echo "🔹 Using Bluetooth KeyBridge mode"
+    PROJECT_ROOT="$( cd "$SCRIPT_DIR/../../BluetoothKeyBridge/arduino/BluetoothKeyBridge" && pwd )"
+else
+    echo "🔸 Using Standard KeyBridge mode"
+    PROJECT_ROOT="$( cd "$SCRIPT_DIR/../../ArduinoKeyBridge" && pwd )"
+fi
+
 #PROJECT_ROOT="$( cd "$SCRIPT_DIR/../../ArduinoKeyBridgeTCP/arduino/ClientConnectionDemo" && pwd )" 
 
 # Important: We use /tmp/arduino_build to avoid potential permission/caching issues
@@ -14,10 +22,10 @@ BUILD_PATH="/tmp/arduino_build"
 #NORMAL_PORT_PATTERN="3101"
 NORMAL_PORT_PATTERN="21201"
 FQBN="arduino:renesas_uno:unor4wifi"
-NOTIFIER="/opt/homebrew/bin/terminal-notifier"
+NOTIFIER=$(which terminal-notifier)
 
 # Check if terminal-notifier is installed
-if [ ! -f "$NOTIFIER" ]; then
+if [ -z "$NOTIFIER" ]; then
     echo "❌ terminal-notifier is not installed."
     echo "To install it, run:"
     echo "brew install terminal-notifier"

@@ -40,3 +40,7 @@ ArduinoKeyBridgeTCP/
 
 # Ignore the old reference codebase
 OLD_ArduinoKeyBridge/
+
+# Ignore Python virtual environments
+venv/
+**/venv/
