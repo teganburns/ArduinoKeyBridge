@@ -5,14 +5,19 @@
 
 // Service and Characteristic UUIDs
 #define SERVICE_UUID        "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-#define CHARACTERISTIC_UUID "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+#define TX_CHAR_UUID       "beb5483e-36e1-4688-b7f5-ea07361b26a8"  // Arduino → Central
+#define RX_CHAR_UUID       "beb5483e-36e1-4688-b7f5-ea07361b26a9"  // Central → Arduino
+
+// Buffer sizes
+const int BUFFER_SIZE = 512;  // Increased buffer size for more data
 
 // BLE objects
 BLEService keyService(SERVICE_UUID);
-BLEByteCharacteristic keyCharacteristic(CHARACTERISTIC_UUID, BLEWrite | BLENotify);
+// Update permissions to allow bidirectional communication
+BLECharacteristic txCharacteristic(TX_CHAR_UUID, BLERead | BLEWrite | BLEIndicate, BUFFER_SIZE);
+BLECharacteristic rxCharacteristic(RX_CHAR_UUID, BLEWrite | BLENotify, BUFFER_SIZE);
 
 // Buffer for serial input
-const int BUFFER_SIZE = 32;
 char inputBuffer[BUFFER_SIZE];
 int bufferIndex = 0;
 
@@ -30,14 +35,17 @@ void setup() {
     BLE.setLocalName(DEVICE_NAME);
     BLE.setAdvertisedService(keyService);
 
-    // Add the characteristic to the service
-    keyService.addCharacteristic(keyCharacteristic);
+    // Add characteristics to the service
+    keyService.addCharacteristic(txCharacteristic);
+    keyService.addCharacteristic(rxCharacteristic);
 
     // Add service
     BLE.addService(keyService);
 
-    // Set the initial value for the characteristic
-    keyCharacteristic.writeValue(0);
+    // Set initial values
+    uint8_t initialValue = 0;
+    txCharacteristic.writeValue(initialValue);
+    rxCharacteristic.writeValue(initialValue);
 
     // Start advertising
     BLE.advertise();
@@ -56,12 +64,44 @@ void loop() {
 
         // While the central is still connected to peripheral
         while (central.connected()) {
-            // Check for incoming BLE data
-            if (keyCharacteristic.written()) {
-                byte value = keyCharacteristic.value();
-                Serial.print("Received data: ");
-                Serial.println(value, HEX);
-                keyCharacteristic.writeValue(value);
+            // Check for incoming BLE data on both characteristics
+            if (rxCharacteristic.written()) {
+                // Get the received data
+                const uint8_t* data = rxCharacteristic.value();
+                int dataLength = rxCharacteristic.valueLength();
+                
+                Serial.print("Received data on RX (");
+                Serial.print(dataLength);
+                Serial.println(" bytes):");
+                
+                // Print received data as hex
+                for (int i = 0; i < dataLength; i++) {
+                    if (data[i] < 0x10) Serial.print("0");
+                    Serial.print(data[i], HEX);
+                    Serial.print(" ");
+                }
+                Serial.println();
+                
+                // Send acknowledgment through TX characteristic
+                txCharacteristic.writeValue(data, dataLength);
+            }
+
+            if (txCharacteristic.written()) {
+                // Get the received data
+                const uint8_t* data = txCharacteristic.value();
+                int dataLength = txCharacteristic.valueLength();
+                
+                Serial.print("Received data on TX (");
+                Serial.print(dataLength);
+                Serial.println(" bytes):");
+                
+                // Print received data as hex
+                for (int i = 0; i < dataLength; i++) {
+                    if (data[i] < 0x10) Serial.print("0");
+                    Serial.print(data[i], HEX);
+                    Serial.print(" ");
+                }
+                Serial.println();
             }
 
             // Check for serial input
@@ -72,11 +112,8 @@ void loop() {
                 if (c == '\n') {
                     inputBuffer[bufferIndex] = '\0';  // Null terminate the string
                     
-                    // Convert the input string to bytes and send
-                    for (int i = 0; i < bufferIndex; i++) {
-                        keyCharacteristic.writeValue(inputBuffer[i]);
-                        delay(10);  // Small delay between characters
-                    }
+                    // Send the complete message through TX characteristic
+                    txCharacteristic.writeValue((uint8_t*)inputBuffer, bufferIndex);
                     
                     // Reset buffer
                     bufferIndex = 0;
