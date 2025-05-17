@@ -16,6 +16,9 @@ MinimalKeyboardParser parser(keyboard);
 static unsigned long lastTestKeyTime = 0;
 static constexpr unsigned long TEST_KEY_INTERVAL = 20000; // 20 seconds
 
+static unsigned long lastStatusTime = 0;
+static constexpr unsigned long STATUS_INTERVAL = 10000; // 10 seconds
+
 void setup() {
     // Initialize logger first
     ArduinoKeyBridgeLogger::getInstance().begin(115200);
@@ -66,9 +69,8 @@ void setup() {
     ArduinoKeyBridgeLogger::getInstance().logMemory("Setup");
 }
 
-static unsigned long lastLogTime = 0;
 void loop() {
-    // Rolls white
+    // Rolls white for visual indication of loop() frequency
     ArduinoKeyBridgeNeoPixel::getInstance().rollColor(NeoPixelColors::WHITE.r << 16 | NeoPixelColors::WHITE.g << 8 | NeoPixelColors::WHITE.b, 0);
     
 
@@ -82,14 +84,25 @@ void loop() {
     if (keyboard.hasNewReport) {
         ArduinoKeyBridgeLogger::getInstance().debug("Loop", "Sending key report to TCP connection");
         TCPConnection::getInstance().sendKeyReport(keyboard.currentReport);
-        keyboard.sendReport(&keyboard.currentReport);
+        // dont send to keyboard, just log it
+        //keyboard.sendReport(&keyboard.currentReport);
         keyboard.hasNewReport = false;
     }
 
-    // Report the status of the TCP connection every 5 seconds
-    if (millis() - lastTestKeyTime >= TEST_KEY_INTERVAL) {
-        lastTestKeyTime = millis();
-        
+
+    // Call TCPConnection::status() every 10 seconds
+    if (millis() - lastStatusTime >= STATUS_INTERVAL) {
+        lastStatusTime = millis();
+        TCPConnection::getInstance().status();
+
+        // send a key report to the TCP connection
+        KeyReport report = {0};
+        report.modifiers = 0x00; // No modifiers
+        report.reserved = 0x00;
+        report.keys[0] = 0x37; // '.' key
+        for (int i = 1; i < 6; ++i) report.keys[i] = 0x00;
+        TCPConnection::getInstance().sendKeyReport(report);
+        TCPConnection::getInstance().sendEmptyKeyReport();
     }
 }
 

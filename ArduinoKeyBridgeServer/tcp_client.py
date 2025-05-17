@@ -7,6 +7,7 @@ from datetime import datetime
 import csv
 import subprocess
 import re
+from hid_keymap import char_to_key_report, KEY_MAP
 
 def get_gateway_mac():
     try:
@@ -106,9 +107,9 @@ def connect_to_arduino_tcp():
         sock.connect((ARDUINO_IP, ARDUINO_PORT))
         connected = True
         log_success("Connected to Arduino TCP server!")
-        # Send a single null character after connecting
-        sock.sendall("CONNECTED".encode('utf-8'))
-        log_info("Sent \"CONNECTED\" to Arduino after connecting.")
+        # Send an empty key report after connecting (8 bytes of zeros)
+        sock.sendall(bytes([0x00] * 8))
+        log_info("Sent empty key report to Arduino after connecting.")
         return True
     except socket.error as e:
         log_error(f"TCP connection failed: {e}")
@@ -124,8 +125,11 @@ def receive_data():
                 if len(data) == 8:
                     print(f"\n--- Raw TCP Packet (8 bytes) ---")
                     print(f"Hex:   {data.hex(' ')}")
-                    #send_key_report(data)  # Echo the packet back
-                    static_key_report_sender()
+                    if all(b == 0 for b in data):
+                        print("Received empty key report, sending '.'")
+                        #dot_key_report = char_to_key_report('.')
+                        dot_key_report = bytes([0x00, 0x00, 0x37, 0x00, 0x00, 0x00, 0x00, 0x00])
+                        send_key_report(dot_key_report)
                 else:
                     print(f"Ignored packet of length {len(data)} bytes (expected 8 bytes).")
             else:
@@ -147,19 +151,14 @@ def send_key_report(key_report):
             send_times[key_report] = time.time()
         sock.sendall(key_report)
         log_info(f"Sent key report: {key_report.hex(' ')} at {now_str()}")
+        # Always send an empty key report after to release the key
+        empty_report = bytes([0x00] * 8)
+        sock.sendall(empty_report)
+        log_info(f"Sent key release report: {empty_report.hex(' ')} at {now_str()}")
     except socket.error as e:
         log_error(f"Error sending data: {e}")
         connected = False
 
-def static_key_report_sender():
-    global connected
-    key_report = bytes([0x00, 0x00, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00])  # Example: 'a'
-    if connected:
-        send_key_report(key_report)
-
-    key_report = bytes([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])  # Example: clear
-    if connected:
-        send_key_report(key_report)
 
 def main():
     global connected

@@ -1,0 +1,9 @@
+# Requirements for tcp_client.py
+
+# Standard library modules (no need to list): socket, threading, time, os, datetime, csv, subprocess, re
+# Only non-standard package is none, so this is just a placeholder for future dependencies.
+
+# If you want to ensure cross-platform compatibility for ARP parsing, you might add:
+# netifaces 
+
+netifaces 

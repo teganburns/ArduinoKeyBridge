@@ -1,8 +1,24 @@
 #!/bin/bash
 
+# Dynamic detection of Arduino port (normal mode)
+find_arduino_port() {
+    for port in /dev/cu.usbmodem*; do
+        # Skip if the port matches /dev/cu.usbmodemF*
+        if [[ "$port" == /dev/cu.usbmodemF* ]]; then
+            continue
+        fi
+        if [ -e "$port" ]; then
+            echo "$port"
+            return 0
+        fi
+    done
+    return 1
+}
+
 # Configuration
 #ARDUINO_PORT="/dev/cu.usbmodem3101"
-ARDUINO_PORT="/dev/cu.usbmodem21201"
+#ARDUINO_PORT="/dev/cu.usbmodem21201"
+ARDUINO_PORT=$(find_arduino_port)
 BAUD_RATE="115200"
 LOG_FILE="arduino_connection.log"
 NOTIFIER="/opt/homebrew/bin/terminal-notifier"
@@ -138,8 +154,11 @@ notify "Arduino Monitor" "Starting monitor for $ARDUINO_PORT"
 pkill -f "cat $ARDUINO_PORT" 2>/dev/null
 
 while true; do
-    if check_arduino; then
+    ARDUINO_PORT=$(find_arduino_port)
+    if [ -n "$ARDUINO_PORT" ]; then
         connect_arduino
+    else
+        log "No Arduino port found. Retrying..."
     fi
     sleep 2
 done 

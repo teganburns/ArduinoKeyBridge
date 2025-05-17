@@ -30,15 +30,29 @@ void TCPConnection::poll() {
         }
     }
 
-    // Only process 8-byte key report packets
     if (client_ && client_.connected()) {
+
+        // if packet is less than 8 bytes but larger than 0, log it
+        if (client_.available() > 0 && client_.available() < 8) {
+            ArduinoKeyBridgeLogger::getInstance().warning("TCPConnection", "Received incomplete key report: " + String(client_.available()) + " bytes");
+
+        }
+
+        // if packet is too large log it 
+        if (client_.available() > 8) {
+            ArduinoKeyBridgeLogger::getInstance().warning("TCPConnection", "Received too large key report: " + String(client_.available()) + " bytes");
+        }
+
+        // Only process 8-byte key report packets
         while (client_.available() >= 8) {
             uint8_t buf[8];
             size_t bytesRead = client_.read(buf, 8);
+            ArduinoKeyBridgeLogger::getInstance().debug("TCPConnection", "HELLOOOO MOTHERFUCKER");
             
             if (bytesRead == 8) {
                 ArduinoKeyBridgeLogger::getInstance().debug("TCPConnection", "Received 8-byte KeyReport from client");
                 ArduinoKeyBridgeLogger::getInstance().hexDump("TCPConnection", buf, 8);
+                // Ignore for now, just looking for logging
                 KeyReport report = bufferToKeyReport(buf);
                 MinimalKeyboard::getInstance().sendReport(&report);
             } else {
@@ -57,6 +71,16 @@ void TCPConnection::sendKeyReport(const KeyReport& report) {
     ArduinoKeyBridgeLogger::getInstance().debug("TCPConnection", "Sending key report to client (sendKeyReport)");
     if (client_ && client_.connected()) {
         client_.write((const uint8_t*)&report, sizeof(KeyReport));
+        client_.flush();
+        ArduinoKeyBridgeLogger::getInstance().debug("TCPConnection", "Sent key report to client (sendKeyReport)");
+    }
+}
+
+void TCPConnection::sendEmptyKeyReport() {
+    ArduinoKeyBridgeLogger::getInstance().debug("TCPConnection", "Sending empty key report to client (sendEmptyKeyReport)");
+    if (client_ && client_.connected()) {
+        KeyReport emptyKeyReport = {0};
+        client_.write((const uint8_t*)&emptyKeyReport, sizeof(KeyReport));
         client_.flush();
         ArduinoKeyBridgeLogger::getInstance().debug("TCPConnection", "Sent key report to client (sendKeyReport)");
     }

@@ -11,6 +11,7 @@ public:
 
     // Send a key report to connected clients
     void sendKeyReport(const KeyReport& report);
+    void sendEmptyKeyReport();
 
     // Start the WiFi Access Point
     void startAP();
