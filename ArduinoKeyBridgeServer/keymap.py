@@ -1,5 +1,12 @@
-# HID key mapping and report generation based on MagicKeyboardKeyMap.h
+"""
+keymap.py
+---------
+Character to HID key report mapping logic for ArduinoKeyBridge.
+"""
 
+from typing import Tuple, Optional
+
+# HID key mapping (from MagicKeyboardKeyMap.h)
 KEY_MAP = {
     'a': (0x04, False), 'A': (0x04, True),
     'b': (0x05, False), 'B': (0x05, True),
@@ -50,16 +57,4 @@ KEY_MAP = {
     '.': (0x37, False), '>': (0x37, True),
     '/': (0x38, False), '?': (0x38, True),
     '\t': (0x2B, False),
-}
-
-def char_to_key_report(char):
-    # Handle newline and tab
-    if char == '\n':
-        keycode, shifted = KEY_MAP.get('\n', (0x00, False))
-    elif char == '\t':
-        keycode, shifted = KEY_MAP.get('\t', (0x00, False))
-    else:
-        keycode, shifted = KEY_MAP.get(char, (0x00, False))
-    modifier = 0x02 if shifted else 0x00
-    # 8-byte HID report: [modifier, 0x00, keycode, 0, 0, 0, 0, 0]
-    return bytes([modifier, 0x00, keycode, 0x00, 0x00, 0x00, 0x00, 0x00]) 
+} 
