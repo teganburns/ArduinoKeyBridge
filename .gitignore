@@ -44,3 +44,8 @@ OLD_ArduinoKeyBridge/
 # Ignore Python virtual environments
 venv/
 **/venv/
+
+# Ignore Python cache and data directories
+__pycache__/
+data/
+CursorTracking/
