@@ -22,7 +22,7 @@ class CommandHandler:
     Command handling logic and character buffer for ArduinoKeyBridge.
     Extend this class to implement macros or device control.
     """
-    def __init__(self):
+    def __init__(self, server):
         self._buffer = deque()
         self.command_map = {
             "screenshot": self.cmd_screenshot,
@@ -38,6 +38,8 @@ class CommandHandler:
             if d and not os.path.exists(d):
                 os.makedirs(d, exist_ok=True)
         self.logger = get_logger(__name__)
+        self.server = server
+
 
     def on(self):
         """
@@ -109,22 +111,25 @@ class CommandHandler:
             return False  # Not a command mode report
 
         key_set = set(report.keys)
-        if key_set == {10}:
-            self.off()
-            self.logger.info("Command mode OFF triggered by special report.")
-            return True
-        elif key_set == {11}:
+        if key_set == {0x10}:
             self.on()
             self.logger.info("Command mode ON triggered by special report.")
             return True
-        elif key_set == {12}:
+        elif key_set == {0x11}:
+            self.off()
+            self.logger.info("Command mode OFF triggered by special report.")
+            return True
+        elif key_set == {0x12}:
             # Good command
             self.logger.info("Special command (all keys 12) received - good command.")
             return True
-        elif key_set == {13}:
+        elif key_set == {0x13}:
             # Bad command
             self.logger.info("Special command (all keys 13) received - bad command.")
             return True
+        else:
+            self.logger.info(f"Unknown special command received. Modifiers: {hex(report.modifiers)}, Keys: {[hex(k) for k in report.keys]}")
+            return False
 
         return False  # Not a recognized special command
 
@@ -153,11 +158,11 @@ class CommandHandler:
                 return self.command_map[best_match]()
             self.logger.warning(f"Unknown command: {command}")
             # send message to make leds red (special KeyReport: modifiers=0x22, keys=[13]*6)
-            server = KeyBridgeTCPServer.get_instance()
             error_report = KeyReport(modifiers=0x22, keys=[13]*6)
-            server.send_key_report(error_report.to_bytes())
-            self.clear_buffer()
+            self.server.send_key_report(error_report.to_bytes())
             return None
+        self.clear_buffer()
+
 
     def is_command(self):
         """
@@ -169,19 +174,17 @@ class CommandHandler:
         """
         Send a success report to the Arduino.
         """
-        server = KeyBridgeTCPServer.get_instance()
         success_report = KeyReport(modifiers=0x22, keys=[12]*6)
         for i in range(STATUS_RETRY_COUNT):
-            server.send_key_report(success_report.to_bytes())
+            self.server.send_key_report(success_report.to_bytes())
 
     def send_error_report(self):
         """
         Send an error report to the Arduino.
         """
-        server = KeyBridgeTCPServer.get_instance()
         error_report = KeyReport(modifiers=0x22, keys=[13]*6)
         for i in range(STATUS_RETRY_COUNT):
-            server.send_key_report(error_report.to_bytes())
+            self.server.send_key_report(error_report.to_bytes())
 
     #####################################
     # Command Handler Methods

@@ -26,7 +26,7 @@ public:
     static ArduinoKeyBridgeNeoPixel& getInstance();
     
     void begin(uint8_t pin = 6, uint16_t numPixels = 24);
-    void setColor(uint8_t r, uint8_t g, uint8_t b);
+    void setColor(const NeoPixelColor& color);
     void setBrightness(uint8_t brightness);
     void clear();
     void show();
@@ -50,7 +50,10 @@ public:
                        const NeoPixelColor& pixel6, const NeoPixelColor& pixel7);
 
     // Roll a color through all pixels
-    void rollColor(uint32_t color, int delayMs);
+    void rollColor(int delayMs);
+
+    // Overload setColor to take NeoPixelColor
+    void setColor(uint8_t r, uint8_t g, uint8_t b);
 
 private:
     ArduinoKeyBridgeNeoPixel() = default;
@@ -76,6 +79,9 @@ private:
         Color(uint8_t r_ = 0, uint8_t g_ = 0, uint8_t b_ = 0) : r(r_), g(g_), b(b_) {}
     };
     Color color1, color2;
+
+    // Store the currently active color for rollColor
+    Color activeColor;
 };
 
 #endif 

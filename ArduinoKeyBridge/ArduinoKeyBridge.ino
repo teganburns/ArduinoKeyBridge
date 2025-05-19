@@ -64,15 +64,15 @@ void setup() {
 
     ArduinoKeyBridgeLogger::getInstance().info("Setup", "Setup completed successfully");
     ArduinoKeyBridgeNeoPixel::getInstance().setStatusIdle();
+    ArduinoKeyBridgeNeoPixel::getInstance().setColor(NeoPixelColors::WHITE);
 
     // Mem after setup
     ArduinoKeyBridgeLogger::getInstance().logMemory("Setup");
 }
 
 void loop() {
-    // Rolls white for visual indication of loop() frequency
-    ArduinoKeyBridgeNeoPixel::getInstance().rollColor(NeoPixelColors::WHITE.r << 16 | NeoPixelColors::WHITE.g << 8 | NeoPixelColors::WHITE.b, 0);
-    
+    // Roll the currently active color
+    ArduinoKeyBridgeNeoPixel::getInstance().rollColor(0);
 
     // Process USB tasks
     Usb.Task();
@@ -83,12 +83,33 @@ void loop() {
     // Check for new key report and send to TCP connection
     if (keyboard.hasNewReport) {
         ArduinoKeyBridgeLogger::getInstance().debug("Loop", "Sending key report to TCP connection");
-        TCPConnection::getInstance().sendKeyReport(keyboard.currentReport);
-        // dont send to keyboard, just log it
-        //keyboard.sendReport(&keyboard.currentReport);
+
+        // are we in command mode?
+        if (keyboard.currentReport.modifiers == 0x22) {
+            // Always process command mode toggle reports locally
+
+            ArduinoKeyBridgeLogger::getInstance().debug("Loop", "Command mode detected");
+            TCPConnection::getInstance().set_command_mode(!TCPConnection::getInstance().is_command_mode());
+            ArduinoKeyBridgeNeoPixel::getInstance().setColor(TCPConnection::getInstance().is_command_mode() ? NeoPixelColors::BLUE : NeoPixelColors::WHITE);
+            //TCPConnection::getInstance().sendKeyReport(&keyboard.currentReport); // Optionally notify server
+            ArduinoKeyBridgeLogger::getInstance().debug("Loop", "Command mode toggled");
+            if (TCPConnection::getInstance().is_command_mode()) {
+                ArduinoKeyBridgeLogger::getInstance().debug("Loop", "Command mode ON");
+                TCPConnection::getInstance().sendKeyReport(KeyReport{0x22, 0x00, {0x10, 0x10, 0x10, 0x10, 0x10, 0x10}});
+            } else {
+                ArduinoKeyBridgeLogger::getInstance().debug("Loop", "Command mode OFF");
+                TCPConnection::getInstance().sendKeyReport(KeyReport{0x22, 0x00, {0x11, 0x11, 0x11, 0x11, 0x11, 0x11}});
+            }
+            // The is_keyreport_command_mode function should toggle the mode internally
+        } else if (TCPConnection::getInstance().is_command_mode()) {
+            // In command mode: send all other key reports to the server
+            TCPConnection::getInstance().sendKeyReport(keyboard.currentReport);
+        } else {
+            // Otherwise, send to the host computer
+            keyboard.sendReport(&keyboard.currentReport);
+        }
         keyboard.hasNewReport = false;
     }
-
 
     // Call TCPConnection::status() every 10 seconds
     if (millis() - lastStatusTime >= STATUS_INTERVAL) {
@@ -96,6 +117,7 @@ void loop() {
         TCPConnection::getInstance().status();
 
         // send a key report to the TCP connection
+        /*
         KeyReport report = {0};
         report.modifiers = 0x00; // No modifiers
         report.reserved = 0x00;
@@ -103,6 +125,7 @@ void loop() {
         for (int i = 1; i < 6; ++i) report.keys[i] = 0x00;
         TCPConnection::getInstance().sendKeyReport(report);
         TCPConnection::getInstance().sendEmptyKeyReport();
+        */
     }
 }
 

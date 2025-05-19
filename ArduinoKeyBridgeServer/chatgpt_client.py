@@ -1,4 +1,5 @@
 import requests
+import base64
 
 class ChatGPTClient:
     """
@@ -25,4 +26,13 @@ class ChatGPTClient:
         if response.status_code == 200:
             return response.json()["choices"][0]["message"]["content"]
         else:
-            raise Exception(f"ChatGPT API request failed: {response.status_code} {response.text}") 
+            raise Exception(f"ChatGPT API request failed: {response.status_code} {response.text}")
+
+    @staticmethod
+    def file_to_base64(file_path):
+        """
+        Reads a file from the given path and returns its base64-encoded string.
+        """
+        with open(file_path, "rb") as f:
+            encoded = base64.b64encode(f.read()).decode('utf-8')
+        return encoded 

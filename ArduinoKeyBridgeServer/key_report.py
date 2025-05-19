@@ -66,4 +66,11 @@ class KeyReport:
         return ''
 
     def __repr__(self):
-        return f"<KeyReport modifiers=0x{self.modifiers:02X} keys={self.keys}>" 
+        return f"<KeyReport modifiers=0x{self.modifiers:02X} keys={self.keys}>"
+
+    def is_empty(self) -> bool:
+        """
+        Return True if the report has no modifiers and all keys are zero.
+        Also returns True if self is None (for safe usage).
+        """
+        return self is None or (self.modifiers == 0 and all(k == 0 for k in self.keys))

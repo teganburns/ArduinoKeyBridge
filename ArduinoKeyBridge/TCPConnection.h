@@ -4,6 +4,7 @@
 #include <Arduino.h>
 #include <WiFiS3.h>
 #include "MinimalKeyboard.h" // For KeyReport
+#include "ArduinoKeyBridgeNeoPixel.h"
 
 class TCPConnection {
 public:
@@ -19,6 +20,12 @@ public:
     bool isReady() const;
     void status();
     void clientStatus();
+    bool change_mode(const KeyReport& report);
+    void set_command_mode(bool mode);
+    bool is_command_mode();
+    bool is_charter_mode();
+
+    void type_charter(const char* str);
 
     KeyReport bufferToKeyReport(const uint8_t* buf);
 
@@ -46,6 +53,8 @@ private:
     WiFiServer server_ = WiFiServer(PORT);
     WiFiClient client_;
     bool ready_ = false;
+    bool command_mode_ = false;
+    bool charter_mode_ = false;
 
     // Private constructor for singleton pattern
     TCPConnection();

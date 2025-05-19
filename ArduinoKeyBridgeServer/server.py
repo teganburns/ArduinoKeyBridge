@@ -94,6 +94,27 @@ class KeyBridgeTCPServer:
             logger.error("Error sending data: %s", e)
             self.connected = False
 
+    def send_string(self, string):
+        """
+        Send a string of key reports.
+        """
+        # First send the charter mode key report (0x22 modifier and 0x2 for all keys)
+        charter_report = KeyReport(0x22, [0x2, 0x2, 0x2, 0x2, 0x2, 0x2])
+        self.send_key_report(charter_report.to_bytes())
+        time.sleep(0.1)
+
+        try:
+            with self.send_lock:
+                self.send_times[string] = time.time()
+            if self.sock:
+                self.sock.sendall(string.encode() + b'\0')
+                logger.info("Sent string: %s", string)
+            else:
+                logger.error("Socket is not connected.")
+        except Exception as e:
+            logger.error("Error sending data: %s", e)
+            self.connected = False
+
     def receive_key_report(self) -> KeyReport:
         try:
             data = self.sock.recv(8)

@@ -17,11 +17,16 @@ void ArduinoKeyBridgeNeoPixel::begin(uint8_t pin, uint16_t numPixels) {
     }
 }
 
+void ArduinoKeyBridgeNeoPixel::setColor(const NeoPixelColor& color) {
+    setColor(color.r, color.g, color.b);
+}
+
 void ArduinoKeyBridgeNeoPixel::setColor(uint8_t r, uint8_t g, uint8_t b) {
     if (!initialized) {
         ArduinoKeyBridgeLogger::getInstance().error("NeoPixel", "Attempt to set color before initialization");
         return;
     }
+    activeColor = Color(r, g, b);
     for(int i = 0; i < pixels->numPixels(); i++) {
         pixels->setPixelColor(i, pixels->Color(r, g, b));
     }
@@ -169,12 +174,13 @@ void ArduinoKeyBridgeNeoPixel::setStatusSuccess() {
     setColor(0, 255, 0);  // Solid bright green
 } 
 
-void ArduinoKeyBridgeNeoPixel::rollColor(uint32_t color, int delayMs) {
+void ArduinoKeyBridgeNeoPixel::rollColor(int delayMs) {
+    // Use activeColor for rolling
     if (!initialized) {
         ArduinoKeyBridgeLogger::getInstance().error("NeoPixel", "Attempt to roll color before initialization");
         return;
     }
-
+    uint32_t color = pixels->Color(activeColor.r, activeColor.g, activeColor.b);
     // Roll from bottom to top
     for(int i=0; i<pixels->numPixels(); i++) {
         for(int j=0; j<pixels->numPixels(); j++) pixels->setPixelColor(j,0);
@@ -182,7 +188,6 @@ void ArduinoKeyBridgeNeoPixel::rollColor(uint32_t color, int delayMs) {
         pixels->show();
         delay(delayMs);
     }
-
     // Roll from top to bottom
     for(int i=pixels->numPixels()-1; i>=0; i--) {
         for(int j=0; j<pixels->numPixels(); j++) pixels->setPixelColor(j,0);
@@ -190,7 +195,6 @@ void ArduinoKeyBridgeNeoPixel::rollColor(uint32_t color, int delayMs) {
         pixels->show();
         delay(delayMs);
     }
-
     // Clear all pixels at end
     for(int j=0; j<pixels->numPixels(); j++) pixels->setPixelColor(j,0);
     pixels->show();

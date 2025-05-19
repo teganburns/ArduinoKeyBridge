@@ -7,3 +7,7 @@
 # netifaces 
 
 netifaces 
+
+opencv-python 
+
+pymongo 

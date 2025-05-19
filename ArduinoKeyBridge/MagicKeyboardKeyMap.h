@@ -49,6 +49,7 @@ const KeyInfo unifiedKeyMap[] = {
     {0x34, '\'', "Quote", false}, {0x35, '`', "Grave Accent", false}, {0x36, ',', "Comma", false},
     {0x37, '.', "Period", false}, {0x38, '/', "Slash", false}, {0x32, -1, "Non-US Pound", false},
     {0x64, -1, "Non-US Backslash", false},
+    {0x2D, '_', "Underscore", true}, {0x33, ':', "Colon", true},
 
     // Shifted Symbol Keys
     {0x1E, '!', "Exclamation", true}, {0x1F, '@', "At Sign", true}, {0x20, '#', "Hash", true},
@@ -80,6 +81,14 @@ const KeyInfo unifiedKeyMap[] = {
     {0x74, -1, "Execute", false}, {0x75, -1, "Help", false}, {0x76, -1, "Menu", false},
     {0x77, -1, "Select", false}, {0x7A, -1, "Undo", false}, {0x7B, -1, "Cut", false},
     {0x7C, -1, "Copy", false}, {0x7D, -1, "Paste", false}, {0x7E, -1, "Find", false},
+
+    {0x2F, '{', "Left Curly Brace", true},   // Shift + [
+    {0x30, '}', "Right Curly Brace", true},  // Shift + ]
+    {0x35, '~', "Tilde", true},              // Shift + `
+    {0x36, '<', "Less Than", true},          // Shift + ,
+    {0x37, '>', "Greater Than", true},       // Shift + .
+    {0x38, '?', "Question Mark", true},      // Shift + /
+    {0x31, '|', "Pipe", true},               // Shift + Backslash
 
     // Error Codes
     {0x01, -1, "Error Roll Over", false}, {0x02, -1, "POST Fail", false},
