@@ -32,14 +32,18 @@ class CommandHandler:
             "list_active_screenshots": self.cmd_list_active_screenshot,
             "list_archived_screenshots": self.cmd_list_archive_screenshot
         }
+        # Add this alias map
+        self.alias_map = {
+            "F13": "screenshot",  # You can use key names or keycodes
+            # Add more aliases as needed
+        }
+        self.server = server
+        self.logger = get_logger(__name__)
 
         # Ensure screenshot output directories exist
         for d in (SCREENSHOT_ACTIVE_DIR, SCREENSHOT_ARCHIVE_DIR):
             if d and not os.path.exists(d):
                 os.makedirs(d, exist_ok=True)
-        self.logger = get_logger(__name__)
-        self.server = server
-
 
     def on(self):
         """
@@ -72,6 +76,14 @@ class CommandHandler:
         Process a KeyReport: handle command mode toggling or buffer normal characters.
         """
         if report.is_empty():
+            return
+
+        # Check for special key alias (e.g., F13)
+        if report.keys[0] == 0x68:  # F13 keycode
+            alias_command = self.alias_map.get("F13")
+            if alias_command:
+                self.logger.info(f"Alias detected: F13 -> {alias_command}")
+                self.handle_command(alias_command)
             return
 
         if self.toggle_command_mode(report):
