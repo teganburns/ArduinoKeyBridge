@@ -49,3 +49,6 @@ venv/
 __pycache__/
 data/
 CursorTracking/
+
+# Ignore capture card screenshots
+/tools/python/capture_card_screenshots/

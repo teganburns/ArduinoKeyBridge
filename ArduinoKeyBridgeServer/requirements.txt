@@ -11,3 +11,11 @@ netifaces
 opencv-python 
 
 pymongo 
+
+requests
+
+pytesseract
+
+rapidfuzz
+
+ultralytics

@@ -9,7 +9,16 @@ STATUS_RETRY_COUNT = 3
 
 
 # Get API keys from environment variables
-CHATGPT_API_KEY = os.getenv('CHATGPT_API_KEY')
+CHATGPT_API_KEY = os.getenv('OPENAI_API_KEY')
+CHATGPT_MODEL = "gpt-4o"
+CHATGPT_MAX_TOKENS = 256
+CHATGPT_TEMPERATURE = 0.7
+CHATGPT_ENDPOINT = "https://api.openai.com/v1/chat/completions"
+DEFAULT_PROMPT= "Look at the images and only provide the correct answer to the question. If it is a coding question only provide the code. Do not provide any explnation or other text. If it multiple choice, provide the letter of the correct answer."
+DEFAULT_PROMPT_MULTIPLE_CHOICE= "Look at the images and only provide the correct answer to the question. Do not provide any explnation or other text. This is a multiple choice question only provide the letter of the correct answer."
+DEFAULT_PROMPT_CODE =  "Look at the images and only provide the correct answer to the question. Do not provide any explnation or other text. This is a coding question only provide the code of the correct answer."
+
+
 
 # Base data directory
 DATA_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), '../data'))
