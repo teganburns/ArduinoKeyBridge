@@ -9,7 +9,7 @@ void ArduinoKeyBridgeNeoPixel::begin(uint8_t pin, uint16_t numPixels) {
     if (!initialized) {
         pixels = new Adafruit_NeoPixel(numPixels, pin, NEO_GRB + NEO_KHZ800);
         pixels->begin();
-        pixels->setBrightness(20);  
+        pixels->setBrightness(255);  
         pixels->show();
         initialized = true;
     } else {
@@ -82,6 +82,7 @@ void ArduinoKeyBridgeNeoPixel::setBrightness(uint8_t brightness) {
     }
     String brightnessMsg = "Setting brightness to " + String(brightness);
     pixels->setBrightness(brightness);
+    //pixels->setBrightness(10);
     pixels->show();
 }
 

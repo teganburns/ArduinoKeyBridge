@@ -116,17 +116,27 @@ class KeyBridgeTCPServer:
             self.connected = False
 
     def receive_key_report(self) -> KeyReport:
-        try:
-            data = self.sock.recv(8)
-            if len(data) == 8:
-                return KeyReport.from_bytes(data)
-            else:
-                logger.warning("Received incomplete key report: %s", data)
+        timeout_count = 0
+        while self.connected:
+            try:
+                data = self.sock.recv(8)
+                if len(data) == 8:
+                    return KeyReport.from_bytes(data)
+                else:
+                    logger.warning("Received incomplete key report: %s", data)
+                    return None
+            except socket.timeout:
+                timeout_count += 1
+                if timeout_count > 5:  # e.g., 5 consecutive timeouts
+                    logger.error("Connection timed out. Arduino may be disconnected.")
+                    self.connected = False
+                    self.reconnect()
+                    return None
+                continue
+            except Exception as e:
+                logger.error("Receive error: %s", e)
+                self.reconnect()
                 return None
-        except Exception as e:
-            logger.error("Receive error: %s", e)
-            self.reconnect()
-            return None
 
     def reconnect(self):
         logger.warning("Attempting to reconnect...")

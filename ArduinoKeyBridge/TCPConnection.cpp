@@ -115,6 +115,10 @@ void TCPConnection::set_command_mode(bool mode) {
     command_mode_ = mode;
 }
 
+void TCPConnection::set_charter_mode(bool mode) {
+    charter_mode_ = mode;
+}
+
 bool TCPConnection::change_mode(const KeyReport& report) {
     // Convert keys to uint8_t for hex comparison
     uint8_t modifiers = report.modifiers;

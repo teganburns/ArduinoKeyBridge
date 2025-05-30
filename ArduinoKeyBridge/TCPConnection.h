@@ -24,6 +24,7 @@ public:
     void set_command_mode(bool mode);
     bool is_command_mode();
     bool is_charter_mode();
+    void set_charter_mode(bool mode);
 
     void type_charter(const char* str);
 

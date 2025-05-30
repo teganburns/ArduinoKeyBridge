@@ -10,6 +10,7 @@ from log import get_logger
 import cv2
 from config import *
 import os
+import time
 from server import KeyBridgeTCPServer
 import difflib
 from database import dbManager
@@ -29,6 +30,8 @@ class CommandHandler:
     """
     def __init__(self, server):
         self._buffer = deque()
+        self._typed_chars = ""  # Track characters we've typed in charter mode
+        self._in_charter_mode = False  # Track if we're in charter mode
         self.command_map = {
             "screenshot": self.cmd_screenshot,
             "archive_screenshot": self.cmd_archive_screenshot,
@@ -40,7 +43,9 @@ class CommandHandler:
             "set_prompt": self.cmd_set_prompt,
             "clear_prompt": self.cmd_clear_prompt,
             "send_to_chatgpt": self.cmd_send_to_chatgpt,
-            "type_response": self.cmd_type_response
+            "type_response": self.cmd_type_response,
+            "type_response_slow": self.cmd_type_response_slow,
+            "type_charter": self.cmd_type_charter
         }
         # Add this alias map
         self.alias_map = {
@@ -95,6 +100,15 @@ class CommandHandler:
         if report.is_empty():
             return
 
+        # Check for command mode toggle first
+        if self.toggle_command_mode(report):
+            return  # Special command handled
+
+        # If in charter mode, only process as charter command
+        if self._in_charter_mode:
+            self.cmd_type_charter()
+            return
+
         # Check for special key alias (e.g., F13)
         for key in report.keys:
             if key == 0x68:  # F13
@@ -127,9 +141,6 @@ class CommandHandler:
                     self.logger.info(f"Alias detected: F3 -> {alias_command} (multiple choice)")
                     self.cmd_clear_prompt(3)
                 return
-
-        if self.toggle_command_mode(report):
-            return  # Special command handled
 
         char = KeyReport.key_report_to_char(report.modifiers, report.keys[0])
         if char and char == '\n':
@@ -241,12 +252,12 @@ class CommandHandler:
 
     def send_charter_mode_report(self):
         """
-        Send a charter mode report to the Arduino.
+        Send a charter mode report to the Arduino to indicate charter mode.
         """
         charter_report = KeyReport(modifiers=0x22, keys=[2]*6)
         for i in range(STATUS_RETRY_COUNT):
             self.server.send_key_report(charter_report.to_bytes())
-    
+
     def send_pending_report(self):
         """
         Send a pending report to the Arduino.
@@ -254,12 +265,6 @@ class CommandHandler:
         pending_report = KeyReport(modifiers=0x22, keys=[14]*6)
         for i in range(STATUS_RETRY_COUNT):
             self.server.send_key_report(pending_report.to_bytes())
-
-    #####################################
-    # Command Handler Methods
-    # All command-specific handler methods
-    # are organized at bottom of class
-    #####################################
 
     def cmd_screenshot(self, device_index=0, output_path=None):
         """
@@ -521,5 +526,105 @@ class CommandHandler:
             self.send_success_report()
         except Exception as e:
             self.logger.error(f"Error typing ChatGPT response: {e}")
+            self.send_error_report()
+        return
+    
+
+    def cmd_type_response_slow(self):
+        """
+        Retrieve the most recent ChatGPT response from the database and type it out using the server.
+        This is a slow version that types one character at a time.
+        """
+        try:
+            # Get the most recent active ChatGPT response
+            doc = database.chatgpt.find_one({"status": "active"}, sort=[("timestamp", -1)])
+            if not doc:
+                self.logger.error("No active ChatGPT response found in database.")
+                self.send_error_report()
+                return
+            response = doc.get("response")
+            # Try to extract the main content from the response
+            content = None
+            if isinstance(response, dict):
+                # OpenAI format: response['choices'][0]['message']['content']
+                try:
+                    content = response['choices'][0]['message']['content']
+                except Exception:
+                    content = str(response)
+            else:
+                content = str(response)
+            if not content:
+                self.logger.error("No content found in ChatGPT response.")
+                self.send_error_report()
+                return
+            self.logger.info(f"Typing response: {content}")
+            for char in content:
+                self.server.send_string(char)
+                time.sleep(0.75)
+            self.send_success_report()
+        except Exception as e:
+            self.logger.error(f"Error typing ChatGPT response: {e}")
+            self.send_error_report()
+        return
+
+    def cmd_type_charter(self):
+        """
+        Get the next character from the ChatGPT response and type it.
+        Tracks typed characters in _typed_chars.
+        Exits charter mode when no more characters.
+        """
+        # Set charter mode to true when first called
+        if not self._in_charter_mode:
+            self._in_charter_mode = True
+
+        try:
+            # Get the most recent active ChatGPT response
+            doc = database.chatgpt.find_one({"status": "active"}, sort=[("timestamp", -1)])
+            if not doc:
+                self.logger.error("No active ChatGPT response found in database.")
+                self.send_error_report()
+                return
+
+            response = doc.get("response")
+            # Try to extract the main content from the response
+            content = None
+            if isinstance(response, dict):
+                try:
+                    content = response['choices'][0]['message']['content']
+                except Exception:
+                    content = str(response)
+            else:
+                content = str(response)
+
+            if not content:
+                self.logger.error("No content found in ChatGPT response.")
+                self.send_error_report()
+                return
+
+            # Get the next character (after what we've already typed)
+            remaining_content = content[len(self._typed_chars):]
+            if len(remaining_content) > 0:
+                char = remaining_content[0]
+                self.logger.info(f"Typing character: {char}")
+                # Just send the character directly, no key report needed
+                self.server.send_string(char)
+                
+                # Add to our typed characters
+                self._typed_chars += char
+                
+                # If no more characters, exit charter mode
+                if len(self._typed_chars) >= len(content):
+                    self.logger.info("No more characters to type, exiting charter mode")
+                    self._typed_chars = ""  # Clear the buffer
+                    self._in_charter_mode = False  # Exit charter mode
+                    self.send_success_report()  # Send success report if nothing left to type
+            else:
+                self.logger.info("No more characters to type, exiting charter mode")
+                self._typed_chars = ""  # Clear the buffer
+                self._in_charter_mode = False  # Exit charter mode
+                self.send_success_report()  # Send success report if nothing left to type
+
+        except Exception as e:
+            self.logger.error(f"Error in type_charter: {e}")
             self.send_error_report()
         return

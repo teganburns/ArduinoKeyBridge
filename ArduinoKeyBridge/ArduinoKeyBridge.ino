@@ -1,5 +1,6 @@
 // Required libraries and headers
 #include <Arduino.h>
+#include <memory>
 #include "TCPConnection.h"
 #include "ArduinoKeyBridgeNeoPixel.h"
 #include "MinimalKeyboard.h"
@@ -27,7 +28,7 @@ void setup() {
     
     // Initialize NeoPixel
     ArduinoKeyBridgeNeoPixel::getInstance().begin(6, 8);
-    ArduinoKeyBridgeNeoPixel::getInstance().setBrightness(5);
+    ArduinoKeyBridgeNeoPixel::getInstance().setBrightness(0);
     ArduinoKeyBridgeNeoPixel::getInstance().showSetupProgress(0.0f);
 
     // Setup 25% complete
@@ -84,9 +85,12 @@ void loop() {
     if (keyboard.hasNewReport) {
         ArduinoKeyBridgeLogger::getInstance().debug("Loop", "Sending key report to TCP connection");
 
-        // are we in command mode?
-        if (keyboard.currentReport.modifiers == 0x22) {
-            // Always process command mode toggle reports locally
+        if (TCPConnection::getInstance().is_charter_mode() ) {
+            // We're in charter mode, so send the key report to the server
+            TCPConnection::getInstance().sendKeyReport(keyboard.currentReport);
+
+        } else if (keyboard.currentReport.modifiers == 0x22) {
+            // Always process command mode toggle reports locally first
 
             ArduinoKeyBridgeLogger::getInstance().debug("Loop", "Command mode detected");
             TCPConnection::getInstance().set_command_mode(!TCPConnection::getInstance().is_command_mode());
@@ -96,9 +100,11 @@ void loop() {
             if (TCPConnection::getInstance().is_command_mode()) {
                 ArduinoKeyBridgeLogger::getInstance().debug("Loop", "Command mode ON");
                 TCPConnection::getInstance().sendKeyReport(KeyReport{0x22, 0x00, {0x10, 0x10, 0x10, 0x10, 0x10, 0x10}});
+                ArduinoKeyBridgeNeoPixel::getInstance().setBrightness(15);
             } else {
                 ArduinoKeyBridgeLogger::getInstance().debug("Loop", "Command mode OFF");
                 TCPConnection::getInstance().sendKeyReport(KeyReport{0x22, 0x00, {0x11, 0x11, 0x11, 0x11, 0x11, 0x11}});
+                ArduinoKeyBridgeNeoPixel::getInstance().setBrightness(1);
             }
             // The is_keyreport_command_mode function should toggle the mode internally
         } else if (TCPConnection::getInstance().is_command_mode()) {

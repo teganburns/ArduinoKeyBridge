@@ -10,7 +10,7 @@ ArduinoKeyBridgeLogger& ArduinoKeyBridgeLogger::getInstance() {
 void ArduinoKeyBridgeLogger::begin(unsigned long baudRate) {
     if (!initialized) {
         SerialUSB.begin(baudRate);
-        while (!SerialUSB); // Wait for Serial connection
+        // No blocking wait for SerialUSB
         initialized = true;
         startTime = millis();
         info("Logger", "ArduinoKeyBridgeLogger initialized");
@@ -25,49 +25,60 @@ void ArduinoKeyBridgeLogger::setLogLevel(LogLevel level) {
 }
 
 void ArduinoKeyBridgeLogger::debug(const char* source, const char* message) {
+    if (!initialized || !SerialUSB) return;
     log(LogLevel::DEBUG, source, message);
 }
 
 void ArduinoKeyBridgeLogger::debug(const char* source, const String& message) {
+    if (!initialized || !SerialUSB) return;
     log(LogLevel::DEBUG, source, message);
 }
 
 void ArduinoKeyBridgeLogger::info(const char* source, const char* message) {
+    if (!initialized || !SerialUSB) return;
     log(LogLevel::INFO, source, message);
 }
 
 void ArduinoKeyBridgeLogger::info(const char* source, const String& message) {
+    if (!initialized || !SerialUSB) return;
     log(LogLevel::INFO, source, message);
 }
 
 void ArduinoKeyBridgeLogger::warning(const char* source, const char* message) {
+    if (!initialized || !SerialUSB) return;
     log(LogLevel::WARNING, source, message);
 }
 
 void ArduinoKeyBridgeLogger::warning(const char* source, const String& message) {
+    if (!initialized || !SerialUSB) return;
     log(LogLevel::WARNING, source, message);
 }
 
 void ArduinoKeyBridgeLogger::error(const char* source, const char* message) {
+    if (!initialized || !SerialUSB) return;
     log(LogLevel::ERROR, source, message);
 }
 
 void ArduinoKeyBridgeLogger::error(const char* source, const String& message) {
+    if (!initialized || !SerialUSB) return;
     log(LogLevel::ERROR, source, message);
 }
 
 void ArduinoKeyBridgeLogger::mem(const char* source, const char* message) {
+    if (!initialized || !SerialUSB) return;
     log(LogLevel::MEM, source, message);
     logMemory(source);
 }
 
 void ArduinoKeyBridgeLogger::mem(const char* source, const String& message) {
+    if (!initialized || !SerialUSB) return;
     log(LogLevel::MEM, source, message);
     logMemory(source);
 }
 
 void ArduinoKeyBridgeLogger::log(LogLevel level, const char* source, const char* message) {
-    if (level >= currentLevel && initialized) {
+    if (!initialized || !SerialUSB) return;
+    if (level >= currentLevel) {
         timestamp();
         SerialUSB.print(getLevelString(level));
         SerialUSB.print(" [");
@@ -78,22 +89,20 @@ void ArduinoKeyBridgeLogger::log(LogLevel level, const char* source, const char*
 }
 
 void ArduinoKeyBridgeLogger::log(LogLevel level, const char* source, const String& message) {
+    if (!initialized || !SerialUSB) return;
     log(level, source, message.c_str());
 }
 
 void ArduinoKeyBridgeLogger::hexDump(const char* source, const uint8_t* data, size_t length) {
-    if (!initialized || currentLevel > LogLevel::DEBUG) return;
-    
+    if (!initialized || !SerialUSB || currentLevel > LogLevel::DEBUG) return;
     timestamp();
     SerialUSB.print("DEBUG [");
     SerialUSB.print(source);
     SerialUSB.println("] Hex Dump:");
-    
     for (size_t i = 0; i < length; i++) {
         if (data[i] < 0x10) SerialUSB.print("0");
         SerialUSB.print(data[i], HEX);
         SerialUSB.print(" ");
-        
         if ((i + 1) % 16 == 0) {
             SerialUSB.println();
         }
@@ -102,6 +111,7 @@ void ArduinoKeyBridgeLogger::hexDump(const char* source, const uint8_t* data, si
 }
 
 void ArduinoKeyBridgeLogger::timestamp() {
+    if (!initialized || !SerialUSB) return;
     unsigned long currentTime = millis() - startTime;
     unsigned long seconds = currentTime / 1000;
     unsigned long milliseconds = currentTime % 1000;

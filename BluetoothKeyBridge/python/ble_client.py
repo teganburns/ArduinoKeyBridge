@@ -25,12 +25,12 @@ class KeyBridgeClient:
 
     async def indication_handler(self, sender, data):
         """Handle incoming indications from the Arduino."""
-        try:
-            # Try to decode as text
-            text = data.decode('utf-8')
+    try:
+        # Try to decode as text
+        text = data.decode('utf-8')
             logger.info(f"Received indication: {text}")
-        except UnicodeDecodeError:
-            # If not text, show as hex
+    except UnicodeDecodeError:
+        # If not text, show as hex
             logger.info(f"Received data: {data.hex()}")
 
     async def send_data(self, data):
@@ -56,8 +56,8 @@ class KeyBridgeClient:
             return False
 
     async def connect_to_device(self, target_device, retry_count=0):
-        """Attempt to connect to the device with retry logic."""
-        try:
+    """Attempt to connect to the device with retry logic."""
+    try:
             self.client = BleakClient(target_device.address)
             await self.client.connect()
             logger.info("Connected!")
@@ -76,18 +76,18 @@ class KeyBridgeClient:
             while self.connected:
                 await asyncio.sleep(1)
                 
-        except Exception as e:
+    except Exception as e:
             logger.error(f"Connection error: {str(e)}")
             self.connected = False
             self.connection_event.clear()
             
-            if retry_count < MAX_RETRIES:
+        if retry_count < MAX_RETRIES:
                 logger.info(f"Retrying in {RETRY_DELAY} seconds... (Attempt {retry_count + 1}/{MAX_RETRIES})")
-                await asyncio.sleep(RETRY_DELAY)
+            await asyncio.sleep(RETRY_DELAY)
                 return await self.connect_to_device(target_device, retry_count + 1)
-            else:
+        else:
                 logger.error("Max retries reached. Exiting...")
-                sys.exit(1)
+            sys.exit(1)
 
     async def disconnect(self):
         """Disconnect from the device."""
@@ -103,21 +103,21 @@ async def scan_for_device():
     
     while True:
         try:
-            # Scan for devices
-            devices = await BleakScanner.discover()
-            
-            # Print all discovered devices
+    # Scan for devices
+    devices = await BleakScanner.discover()
+    
+    # Print all discovered devices
             logger.info("\nDiscovered devices:")
-            for device in devices:
+    for device in devices:
                 logger.info(f"Device: {device.name or 'Unknown'} - Address: {device.address}")
-                if device.name:
+        if device.name:
                     logger.info(f"  Name: {device.name}")
-                if device.metadata.get('uuids'):
+        if device.metadata.get('uuids'):
                     logger.info(f"  Services: {device.metadata['uuids']}")
                 logger.info("---")
-            
+    
             # Look for device with our service UUID
-            for device in devices:
+    for device in devices:
                 if device.metadata.get('uuids') and SERVICE_UUID.lower() in [uuid.lower() for uuid in device.metadata['uuids']]:
                     logger.info(f"\nFound target device: {device.name or 'Unknown'}")
                     logger.info(f"Address: {device.address}")
@@ -140,7 +140,7 @@ async def main():
         
         # Start connection in background
         connection_task = asyncio.create_task(client.connect_to_device(target_device))
-        
+    
         # Wait for connection to be established
         await client.connection_event.wait()
         
