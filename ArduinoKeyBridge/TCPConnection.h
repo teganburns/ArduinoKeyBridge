@@ -26,6 +26,14 @@ public:
     bool is_charter_mode();
     void set_charter_mode(bool mode);
 
+    // Charter mode/local typing support
+    void handleCharterKeyReport(const KeyReport& report);
+    void toggleCharterMode();
+    void clearCharterBuffer();
+    void dumpCharterBuffer();
+    void typeNextCharFromBuffer();
+    String charterBuffer = "This is a test string";
+
     void type_charter(const char* str);
 
     KeyReport bufferToKeyReport(const uint8_t* buf);

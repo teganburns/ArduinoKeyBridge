@@ -50,8 +50,7 @@ void TCPConnection::poll() {
                 if (c == '\0') {
                     if (buffer.length() > 0) {
                         ArduinoKeyBridgeLogger::getInstance().debug("TCPConnection", "Charter mode EXITING");
-                        type_charter(buffer.c_str());
-                        buffer = "";
+                        charterBuffer = buffer;
                         charter_mode_ = false;
                         change_mode(KeyReport{0x22, 0x00, {0x11, 0x11, 0x11, 0x11, 0x11, 0x11}});
                         break;
@@ -293,5 +292,77 @@ void TCPConnection::type_charter(const char* str) {
             // Optionally log or handle unmapped characters
             ArduinoKeyBridgeLogger::getInstance().warning("TCPConnection", String("No keycode for char: ") + c);
         }
+    }
+}
+
+void TCPConnection::toggleCharterMode() {
+    bool prev = charter_mode_;
+    charter_mode_ = !charter_mode_;
+    ArduinoKeyBridgeLogger::getInstance().info("CharterMode", String("Manual charter mode toggled from ") + (prev ? "ON" : "OFF") + " to " + (charter_mode_ ? "ON" : "OFF"));
+    ArduinoKeyBridgeNeoPixel::getInstance().setColor(charter_mode_ ? NeoPixelColors::MAGENTA : NeoPixelColors::WHITE);
+    ArduinoKeyBridgeNeoPixel::getInstance().setBrightness(charter_mode_ ? 15 : 1);
+}
+
+void TCPConnection::handleCharterKeyReport(const KeyReport& report) {
+    // Ignore empty key reports (key up events)
+    bool isEmpty = (report.modifiers == 0x00);
+    for (int i = 0; i < 6; ++i) { if (report.keys[i] != 0x00) { isEmpty = false; break; } }
+    if (isEmpty) { return; }
+
+    uint8_t key = report.keys[0];
+    switch (key) {
+        case 0x6E: // F19
+            toggleCharterMode();
+            break;
+        case 0x6D: // F18
+            dumpCharterBuffer();
+            break;
+        case 0x6C: // F17
+            clearCharterBuffer();
+            break;
+        default:
+            typeNextCharFromBuffer();
+            break;
+    }
+}
+
+void TCPConnection::clearCharterBuffer() {
+    if (charter_mode_) {
+        charterBuffer = "";
+        // Optionally update LEDs or log
+    }
+}
+
+void TCPConnection::dumpCharterBuffer() {
+    if (charter_mode_ && charterBuffer.length() > 0) {
+        bool shitToDump = true;
+        while (charterBuffer.length() > 0) {
+            typeNextCharFromBuffer();
+        }
+
+
+        // Optionally update LEDs or log
+    }
+}
+
+void TCPConnection::typeNextCharFromBuffer() {
+    if (charter_mode_ && charterBuffer.length() > 0) {
+        char c = charterBuffer[0];
+        charterBuffer.remove(0, 1);
+
+        char singleCharStr[2] = {c, '\0'};
+        type_charter(singleCharStr);
+
+        ArduinoKeyBridgeLogger::getInstance().debug("TCPConnection", "Typed next char from buffer: " + String(c));
+        // Optionally update LEDs if buffer is now empty
+        if (charterBuffer.length() == 0) {
+            ArduinoKeyBridgeNeoPixel::getInstance().setColor(NeoPixelColors::GREEN);
+            ArduinoKeyBridgeLogger::getInstance().debug("TCPConnection", "Charter buffer is now empty, setting color to GREEN");
+        }
+        return;
+    } else if (charterBuffer.length() == 0) {
+        ArduinoKeyBridgeNeoPixel::getInstance().setColor(NeoPixelColors::RED);
+        ArduinoKeyBridgeLogger::getInstance().warning("TCPConnection", "Charter mode on but buffer is empty");
+        return;
     }
 }

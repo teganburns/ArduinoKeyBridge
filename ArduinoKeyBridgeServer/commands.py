@@ -19,6 +19,11 @@ import datetime
 from chatgpt_client import ChatGPTClient
 import json
 import uuid
+from openai import OpenAI
+from pathlib import Path
+import tempfile
+import platform
+import subprocess
 
 logger = get_logger(__name__)
 database = dbManager()
@@ -44,8 +49,7 @@ class CommandHandler:
             "clear_prompt": self.cmd_clear_prompt,
             "send_to_chatgpt": self.cmd_send_to_chatgpt,
             "type_response": self.cmd_type_response,
-            "type_response_slow": self.cmd_type_response_slow,
-            "type_charter": self.cmd_type_charter
+            "speak": self.cmd_speak
         }
         # Add this alias map
         self.alias_map = {
@@ -54,6 +58,9 @@ class CommandHandler:
             "F1": "set_prompt",  # F1 triggers set_prompt
             "F2": "clear_prompt",  # F2 triggers clear_prompt (code)
             "F3": "clear_prompt",  # F3 triggers clear_prompt (multiple choice)
+            "F14": "send_to_chatgpt",  # F14 triggers send_to_chatgpt
+            "F15": "type_response",  # F15 triggers type_response
+            "F12": "speak",  # Optional: trigger with F12
             # Add more aliases as needed
         }
         self.server = server
@@ -140,6 +147,24 @@ class CommandHandler:
                 if alias_command:
                     self.logger.info(f"Alias detected: F3 -> {alias_command} (multiple choice)")
                     self.cmd_clear_prompt(3)
+                return
+            if key == 0x69:  # F14
+                alias_command = self.alias_map.get("F14")
+                if alias_command:
+                    self.logger.info(f"Alias detected: F14 -> {alias_command}")
+                    self.handle_command(alias_command)
+                return
+            if key == 0x6A:  # F15
+                alias_command = self.alias_map.get("F15")
+                if alias_command:
+                    self.logger.info(f"Alias detected: F15 -> {alias_command}")
+                    self.handle_command(alias_command)
+                return
+            if key == 0x45:  # F12
+                alias_command = self.alias_map.get("F12")
+                if alias_command:
+                    self.logger.info(f"Alias detected: F12 -> {alias_command}")
+                    self.handle_command(alias_command)
                 return
 
         char = KeyReport.key_report_to_char(report.modifiers, report.keys[0])
@@ -495,6 +520,51 @@ class CommandHandler:
         self.send_success_report()
         return
 
+    def cmd_speak(self):
+        """
+        Fetch the last ChatGPT response, send it to a TTS API, receive audio, and play it.
+        """
+        try:
+            # 1. Get the most recent ChatGPT response from the database
+            doc = database.chatgpt.find_one({"status": "active"}, sort=[("timestamp", -1)])
+            if not doc:
+                content = "There is no active ChatGPT response found in database."
+                self.logger.warning(content)
+            else:
+                response = doc.get("response")
+                # Extract the main content
+                if isinstance(response, dict):
+                    try:
+                        content = response['choices'][0]['message']['content']
+                    except Exception:
+                        content = str(response)
+                else:
+                    content = str(response)
+                if not content:
+                    content = "There is no active ChatGPT response found in the database."
+                    self.logger.warning(content)
+
+            # 2. Use the ChatGPTClient's TTS method
+            chatgpt = ChatGPTClient()
+            audio_path = chatgpt.text_to_speech(content)
+
+            self.logger.info(f"Audio file saved to {audio_path}")
+
+            # 3. Play the audio file (cross-platform)
+            if platform.system() == "Darwin":  # macOS
+                subprocess.run(["afplay", audio_path])
+            elif platform.system() == "Linux":
+                subprocess.run(["mpg123", audio_path])
+            elif platform.system() == "Windows":
+                os.startfile(audio_path)
+            else:
+                self.logger.warning("Unknown OS, cannot auto-play audio.")
+
+            self.send_success_report()
+        except Exception as e:
+            self.logger.error(f"Error in cmd_speak: {e}")
+            self.send_error_report()
+
     def cmd_type_response(self):
         """
         Retrieve the most recent ChatGPT response from the database and type it out using the server.
@@ -530,101 +600,3 @@ class CommandHandler:
         return
     
 
-    def cmd_type_response_slow(self):
-        """
-        Retrieve the most recent ChatGPT response from the database and type it out using the server.
-        This is a slow version that types one character at a time.
-        """
-        try:
-            # Get the most recent active ChatGPT response
-            doc = database.chatgpt.find_one({"status": "active"}, sort=[("timestamp", -1)])
-            if not doc:
-                self.logger.error("No active ChatGPT response found in database.")
-                self.send_error_report()
-                return
-            response = doc.get("response")
-            # Try to extract the main content from the response
-            content = None
-            if isinstance(response, dict):
-                # OpenAI format: response['choices'][0]['message']['content']
-                try:
-                    content = response['choices'][0]['message']['content']
-                except Exception:
-                    content = str(response)
-            else:
-                content = str(response)
-            if not content:
-                self.logger.error("No content found in ChatGPT response.")
-                self.send_error_report()
-                return
-            self.logger.info(f"Typing response: {content}")
-            for char in content:
-                self.server.send_string(char)
-                time.sleep(0.75)
-            self.send_success_report()
-        except Exception as e:
-            self.logger.error(f"Error typing ChatGPT response: {e}")
-            self.send_error_report()
-        return
-
-    def cmd_type_charter(self):
-        """
-        Get the next character from the ChatGPT response and type it.
-        Tracks typed characters in _typed_chars.
-        Exits charter mode when no more characters.
-        """
-        # Set charter mode to true when first called
-        if not self._in_charter_mode:
-            self._in_charter_mode = True
-
-        try:
-            # Get the most recent active ChatGPT response
-            doc = database.chatgpt.find_one({"status": "active"}, sort=[("timestamp", -1)])
-            if not doc:
-                self.logger.error("No active ChatGPT response found in database.")
-                self.send_error_report()
-                return
-
-            response = doc.get("response")
-            # Try to extract the main content from the response
-            content = None
-            if isinstance(response, dict):
-                try:
-                    content = response['choices'][0]['message']['content']
-                except Exception:
-                    content = str(response)
-            else:
-                content = str(response)
-
-            if not content:
-                self.logger.error("No content found in ChatGPT response.")
-                self.send_error_report()
-                return
-
-            # Get the next character (after what we've already typed)
-            remaining_content = content[len(self._typed_chars):]
-            if len(remaining_content) > 0:
-                char = remaining_content[0]
-                self.logger.info(f"Typing character: {char}")
-                # Just send the character directly, no key report needed
-                self.server.send_string(char)
-                
-                # Add to our typed characters
-                self._typed_chars += char
-                
-                # If no more characters, exit charter mode
-                if len(self._typed_chars) >= len(content):
-                    self.logger.info("No more characters to type, exiting charter mode")
-                    self._typed_chars = ""  # Clear the buffer
-                    self._in_charter_mode = False  # Exit charter mode
-                    self.send_success_report()  # Send success report if nothing left to type
-            else:
-                self.logger.info("No more characters to type, exiting charter mode")
-                self._typed_chars = ""  # Clear the buffer
-                self._in_charter_mode = False  # Exit charter mode
-                self.send_success_report()  # Send success report if nothing left to type
-
-        except Exception as e:
-            self.logger.error(f"Error in type_charter: {e}")
-            self.send_error_report()
-        return

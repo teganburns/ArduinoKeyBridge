@@ -77,3 +77,25 @@ class ChatGPTClient:
             json=payload
         )
         return response.json() 
+
+    def text_to_speech(self, text, voice="nova", model="tts-1", output_path="speech.mp3"):
+        """
+        Convert text to speech using OpenAI's TTS API and save to output_path.
+        """
+        url = "https://api.openai.com/v1/audio/speech"
+        headers = {
+            "Authorization": f"Bearer {self.api_key}",
+        }
+        json_data = {
+            "model": model,
+            "input": text,
+            "voice": voice,
+        }
+        response = requests.post(url, headers=headers, json=json_data, stream=True)
+        if response.status_code == 200:
+            with open(output_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=4096):
+                    f.write(chunk)
+            return output_path
+        else:
+            raise Exception(f"TTS API request failed: {response.status_code} {response.text}") 
