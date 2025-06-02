@@ -13,14 +13,9 @@ find_arduino_port() {
 # Get the absolute path to the script's directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
-# Check if Bluetooth mode is requested
-if [ "$1" = "bt" ] || [ "$1" = "bluetooth" ]; then
-    echo "🔹 Using Bluetooth KeyBridge mode"
-    PROJECT_ROOT="$( cd "$SCRIPT_DIR/../../BluetoothKeyBridge/arduino/BluetoothKeyBridge" && pwd )"
-else
-    echo "🔸 Using Standard KeyBridge mode"
-    PROJECT_ROOT="$( cd "$SCRIPT_DIR/../../ArduinoKeyBridge" && pwd )"
-fi
+# Set the project root to the standard ArduinoKeyBridge directory
+echo "🔸 Using ArduinoKeyBridge"
+PROJECT_ROOT="$( cd "$SCRIPT_DIR/../../ArduinoKeyBridge" && pwd )"
 
 #PROJECT_ROOT="$( cd "$SCRIPT_DIR/../../ArduinoKeyBridgeTCP/arduino/ClientConnectionDemo" && pwd )" 
 
