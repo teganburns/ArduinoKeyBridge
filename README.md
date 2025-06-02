@@ -36,3 +36,12 @@ The project includes various development tools to streamline the development pro
 - **Accessibility Enhancements**: Develop innovative solutions for users with specialized input needs.
 
 Whether you're building a smarter workspace, experimenting with IoT, or developing custom tools, **ArduinoKeyBridge** empowers your keyboard with supercharged capabilities. Contributions and ideas are welcome to push the boundaries of what's possible!
+
+## Directory Overview
+
+- **`ArduinoKeyBridge/`** – Core firmware for the Arduino UNO R4 WiFi. See [ArduinoKeyBridge/README.md](ArduinoKeyBridge/README.md).
+- **`ArduinoKeyBridgeServer/`** – Python companion server for handling key reports and executing commands. See [ArduinoKeyBridgeServer/README.md](ArduinoKeyBridgeServer/README.md).
+- **`BluetoothKeyBridge/`** – Experimental BLE prototype with Arduino and Python examples. See [BluetoothKeyBridge/README.md](BluetoothKeyBridge/README.md).
+- **`docs/`** – Comprehensive documentation with per-file references. See [docs/README.md](docs/README.md).
+- **`tools/`** – Helper scripts for development and testing.
+
