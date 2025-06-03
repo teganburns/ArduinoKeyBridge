@@ -1,4 +1,6 @@
-[![Compile Arduino Sketches (Uno R4 WiFi)](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml/badge.svg?branch=main)](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml)
+[![Compile Arduino Sketches (Uno R4 WiFi) - main](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml/badge.svg?branch=main)](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml)
+[![Compile Arduino Sketches (Uno R4 WiFi) - development](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml/badge.svg?branch=development)](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml)
+[![Compile Arduino Sketches (Uno R4 WiFi) - chatgpt-codex](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml/badge.svg?branch=chatgpt-codex)](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml)
 
 # ArduinoKeyBridge
 
