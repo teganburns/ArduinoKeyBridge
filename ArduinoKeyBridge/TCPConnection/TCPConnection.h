@@ -3,8 +3,8 @@
 
 #include <Arduino.h>
 #include <WiFiS3.h>
-#include "MinimalKeyboard.h" // For KeyReport
-#include "ArduinoKeyBridgeNeoPixel.h"
+#include "../MinimalKeyboard/MinimalKeyboard.h" // For KeyReport
+#include "../ArduinoKeyBridgeNeoPixel/ArduinoKeyBridgeNeoPixel.h"
 
 class TCPConnection {
 public:

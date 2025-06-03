@@ -1,8 +1,10 @@
 # ArduinoKeyBridge Firmware
 
-This directory contains the main firmware for the **ArduinoKeyBridge** project. The code targets the Arduino UNO R4 WiFi and turns it into a USB keyboard host that can forward key reports over Wi‑Fi and provide visual feedback using NeoPixels.
+This directory contains the main firmware for the **ArduinoKeyBridge** project. The main sketch `ArduinoKeyBridge.ino` resides here, while each supporting module lives in its own subdirectory (for example, `MinimalKeyboard/` or `TCPConnection/`). The code targets the Arduino UNO R4 WiFi and turns it into a USB keyboard host that can forward key reports over Wi‑Fi and provide visual feedback using NeoPixels.
 
 ## File Overview
+
+All supporting source files sit in directories matching their component name for clarity.
 
 | File | Description |
 | ---- | ----------- |

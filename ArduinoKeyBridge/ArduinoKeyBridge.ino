@@ -1,9 +1,9 @@
 // Required libraries and headers
 #include <Arduino.h>
 #include <memory>
-#include "TCPConnection.h"
-#include "ArduinoKeyBridgeNeoPixel.h"
-#include "MinimalKeyboard.h"
+#include "TCPConnection/TCPConnection.h"
+#include "ArduinoKeyBridgeNeoPixel/ArduinoKeyBridgeNeoPixel.h"
+#include "MinimalKeyboard/MinimalKeyboard.h"
 
 // USB Host Controller and HID Keyboard interface
 USB Usb;
