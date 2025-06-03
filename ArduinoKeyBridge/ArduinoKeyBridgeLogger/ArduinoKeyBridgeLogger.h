@@ -45,7 +45,6 @@ public:
     size_t findMaxAllocation();
     void runMemoryTest();
     void logAllocationTest(const char* source, size_t maxAlloc);
-    void jsonDocumentTest();
     
     // Memory percentage method
     float getMemoryPercentage();
