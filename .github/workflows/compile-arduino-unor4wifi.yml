@@ -23,5 +23,6 @@ jobs:
             ArduinoJson
             "Adafruit NeoPixel"
             WiFiS3
-          enable-warnings-report: true
-          show-sketch-size: true 
+          platforms: |
+            arduino:renesas_uno@1.4.1
+          enable-warnings-report: true 
