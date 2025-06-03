@@ -24,5 +24,5 @@ jobs:
             "Adafruit NeoPixel"
             WiFiS3
           platforms: |
-            arduino:renesas_uno@1.4.1
+            - arduino:renesas_uno@1.4.1
           enable-warnings-report: true 
