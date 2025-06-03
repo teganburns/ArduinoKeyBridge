@@ -1,11 +1,6 @@
-**Build Status:**
-
-- **main:**
-  [![Compile Arduino Sketches (Uno R4 WiFi) - main](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml/badge.svg?branch=main)](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml)
-- **development:**
-  [![Compile Arduino Sketches (Uno R4 WiFi) - development](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml/badge.svg?branch=development)](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml)
-- **chatgpt-codex:**
-  [![Compile Arduino Sketches (Uno R4 WiFi) - chatgpt-codex](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml/badge.svg?branch=chatgpt-codex)](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml)
+| Main | Development | ChatGPT-Codex |
+|------|-------------|---------------|
+| [![Main](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml/badge.svg?branch=main)](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml) | [![Development](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml/badge.svg?branch=development)](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml) | [![ChatGPT-Codex](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml/badge.svg?branch=chatgpt-codex)](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml) |
 
 # ArduinoKeyBridge
 
