@@ -20,9 +20,7 @@ jobs:
           sketch-paths: |
             ArduinoKeyBridge/
           libraries: |
-            ArduinoJson
             "Adafruit NeoPixel"
-            WiFiS3
           platforms: |
             - arduino:renesas_uno@1.4.1
           enable-warnings-report: true 
