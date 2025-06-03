@@ -1,9 +1,9 @@
 name: Compile Arduino Sketches (Uno R4 WiFi)
 
 on:
+  push:
   pull_request:
-    branches:
-      - main
+  workflow_dispatch:  # Manual trigger from GitHub UI
 
 jobs:
   compile:
