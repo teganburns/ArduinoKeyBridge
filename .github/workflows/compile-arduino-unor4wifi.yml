@@ -21,7 +21,7 @@ jobs:
             ArduinoKeyBridge/
           libraries: |
             ArduinoJson
-            Adafruit NeoPixel
+            "Adafruit NeoPixel"
             WiFiS3
           enable-warnings-report: true
           show-sketch-size: true 
