@@ -1,0 +1,27 @@
+name: Compile Arduino Sketches (Uno R4 WiFi)
+
+on:
+  pull_request:
+    branches:
+      - main
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Compile sketches for Uno R4 WiFi
+        uses: arduino/compile-sketches@v1
+        with:
+          fqbn: arduino:renesas_uno:unor4wifi
+          sketch-paths: |
+            ArduinoKeyBridge/
+          libraries: |
+            ArduinoJson
+            Adafruit NeoPixel
+            WiFiS3
+          enable-warnings-report: true
+          show-sketch-size: true
