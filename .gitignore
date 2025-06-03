@@ -52,3 +52,4 @@ CursorTracking/
 
 # Ignore capture card screenshots
 /tools/python/capture_card_screenshots/
+ArduinoKeyBridgeServer/server.pid
