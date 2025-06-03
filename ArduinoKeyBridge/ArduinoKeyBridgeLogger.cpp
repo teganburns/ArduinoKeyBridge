@@ -1,6 +1,5 @@
 #include "ArduinoKeyBridgeLogger.h"
 #include <Arduino.h>
-#include <ArduinoJson.h>
 
 ArduinoKeyBridgeLogger& ArduinoKeyBridgeLogger::getInstance() {
     static ArduinoKeyBridgeLogger instance;
@@ -233,43 +232,4 @@ float ArduinoKeyBridgeLogger::getMemoryPercentage() {
     // Calculate memory usage percentage
     int used_memory = totalSRAM - maxAlloc;
     return ((float)used_memory / totalSRAM) * 100;
-}
-
-void ArduinoKeyBridgeLogger::jsonDocumentTest() {
-    const char* source = "JsonTest";
-    
-    // Initialize JsonDocument for testing
-    {
-        JsonDocument* doc = new JsonDocument();
-        mem(source, "Before JsonDocument creation");
-        logMemory(source);
-        
-        (*doc)["test"] = "test";
-        mem(source, "After setting values");
-        logMemory(source);
-        
-        (*doc)["sensors"] = "test";
-        mem(source, "After setting sensors");
-        logMemory(source);
-        
-        (*doc)["network"] = "test";
-        mem(source, "After setting network values");
-        logMemory(source);
-        
-        // Force document to be used
-        String test = (*doc)["test"].as<String>();
-        mem(source, "After accessing value");
-        logMemory(source);
-        
-        // Try to reclaim memory
-        doc->clear();
-        mem(source, "After clearing document");
-        logMemory(source);
-        
-        delete doc;
-        mem(source, "After deleting document");
-        logMemory(source);
-    }
-    mem(source, "After scope end");
-    logMemory(source);
 }
