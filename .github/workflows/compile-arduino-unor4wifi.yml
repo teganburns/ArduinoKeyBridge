@@ -21,4 +21,5 @@ jobs:
             ArduinoKeyBridge/
           libraries: |
             "Adafruit NeoPixel"
+            "USB Host Shield Library 2.0"
           enable-warnings-report: true 
