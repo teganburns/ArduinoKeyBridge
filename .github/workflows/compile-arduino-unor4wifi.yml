@@ -21,6 +21,4 @@ jobs:
             ArduinoKeyBridge/
           libraries: |
             "Adafruit NeoPixel"
-          platforms: |
-            - arduino:renesas_uno@1.4.1
           enable-warnings-report: true 
