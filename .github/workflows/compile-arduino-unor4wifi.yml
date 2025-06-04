@@ -1,0 +1,26 @@
+name: Compile Arduino Sketches (Uno R4 WiFi)
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:  # Manual trigger from GitHub UI
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Compile sketches for Uno R4 WiFi
+        uses: arduino/compile-sketches@v1
+        with:
+          fqbn: arduino:renesas_uno:unor4wifi
+          sketch-paths: |
+            ArduinoKeyBridge/
+          libraries: |
+            "Adafruit NeoPixel"
+            "USB Host Shield Library 2.0"
+            ArduinoJson
+          enable-warnings-report: true 

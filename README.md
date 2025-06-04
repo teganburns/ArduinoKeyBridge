@@ -1,3 +1,7 @@
+| Main | Development | ChatGPT-Codex |
+|------|-------------|---------------|
+| [![Main](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml/badge.svg?branch=main)](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml) | [![Development](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml/badge.svg?branch=development)](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml) | [![ChatGPT-Codex](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml/badge.svg?branch=chatgpt-codex)](https://github.com/teganburns/ArduinoKeyBridge/actions/workflows/compile-arduino-unor4wifi.yml) |
+
 # ArduinoKeyBridge
 
 **ArduinoKeyBridge** transforms ordinary keyboards into powerful, standalone input devices with customizable functionality. Designed for innovation and control, this project allows users to inject custom code and assign special operations to keys—all without relying on a connected computer. With integrated Wi-Fi, your keyboard becomes a fully autonomous device capable of advanced interactions and remote command execution.
