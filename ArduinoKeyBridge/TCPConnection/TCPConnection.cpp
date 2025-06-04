@@ -1,5 +1,5 @@
 #include "TCPConnection.h"
-#include "ArduinoKeyBridgeLogger.h"
+#include "../ArduinoKeyBridgeLogger/ArduinoKeyBridgeLogger.h"
 
 TCPConnection& TCPConnection::getInstance() {
     static TCPConnection instance;

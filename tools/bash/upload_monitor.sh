@@ -14,7 +14,7 @@ find_arduino_port() {
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Set the project root to the standard ArduinoKeyBridge directory
-echo "🔸 Using ArduinoKeyBridge"
+echo "🔸 Using ArduinoKeyBridge (root directory)"
 PROJECT_ROOT="$( cd "$SCRIPT_DIR/../../ArduinoKeyBridge" && pwd )"
 
 #PROJECT_ROOT="$( cd "$SCRIPT_DIR/../../ArduinoKeyBridgeTCP/arduino/ClientConnectionDemo" && pwd )" 

@@ -2,7 +2,7 @@
 #define ARDUINO_KEY_BRIDGE_NEOPIXEL_H
 
 #include <Adafruit_NeoPixel.h>
-#include "ArduinoKeyBridgeLogger.h"
+#include "../ArduinoKeyBridgeLogger/ArduinoKeyBridgeLogger.h"
 
 // Color constants for easy reference
 struct NeoPixelColor {

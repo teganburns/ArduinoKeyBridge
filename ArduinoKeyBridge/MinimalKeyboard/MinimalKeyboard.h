@@ -3,8 +3,8 @@
 
 #include <hidboot.h>
 #include <HID.h>
-#include "MagicKeyboardKeyMap.h"
-#include "ArduinoKeyBridgeLogger.h"
+#include "../MagicKeyboardKeyMap/MagicKeyboardKeyMap.h"
+#include "../ArduinoKeyBridgeLogger/ArduinoKeyBridgeLogger.h"
 
 // Key report structure
 typedef struct {

@@ -39,7 +39,7 @@ Whether you're building a smarter workspace, experimenting with IoT, or developi
 
 ## Directory Overview
 
-- **`ArduinoKeyBridge/`** – Core firmware for the Arduino UNO R4 WiFi. See [ArduinoKeyBridge/README.md](ArduinoKeyBridge/README.md).
+ - **`ArduinoKeyBridge/`** – Core firmware for the Arduino UNO R4 WiFi. The main sketch `ArduinoKeyBridge.ino` resides in this directory while supporting modules live in subdirectories like `MinimalKeyboard/` and `TCPConnection/`. See [ArduinoKeyBridge/README.md](ArduinoKeyBridge/README.md).
 - **`ArduinoKeyBridgeServer/`** – Python companion server for handling key reports and executing commands. See [ArduinoKeyBridgeServer/README.md](ArduinoKeyBridgeServer/README.md).
 - **`BluetoothKeyBridge/`** – Experimental BLE prototype with Arduino and Python examples. See [BluetoothKeyBridge/README.md](BluetoothKeyBridge/README.md).
 - **`docs/`** – Comprehensive documentation with per-file references. See [docs/README.md](docs/README.md).
